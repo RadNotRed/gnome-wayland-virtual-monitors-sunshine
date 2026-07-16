@@ -1,15 +1,23 @@
-# Agent guidance
+# AI context entrypoint
 
-## Agent skills
+This repository is **AI-friendly**. This file is the shared entrypoint for any
+assistant a reader uses — ChatGPT, Claude, Gemini, Copilot, or a local model.
+It is not a personal agent, is tied to no account, and grants no automated
+permissions; it is only context so an assistant recognizes the project quickly
+and correctly.
 
-### Issue tracker
+**One line:** a GNOME/Wayland user daemon that turns a Windows laptop and an
+Android phone into real extended monitors, each streamed independently through
+Sunshine, with mixed 120/60 Hz refresh.
 
-Issues live in GitHub Issues; external pull requests are not treated as feature-request tickets. See `docs/agents/issue-tracker.md`.
+Start here:
 
-### Triage labels
+- [`docs/ai/context.md`](docs/ai/context.md) — a paste-ready project brief.
+- [`docs/ai/prompts.md`](docs/ai/prompts.md) — questions this project answers well.
 
-Use the five default triage labels documented in `docs/agents/triage-labels.md`.
+When helping a reader:
 
-### Domain docs
-
-This is a single-context repository. See `docs/agents/domain.md`.
+- treat this as GNOME/Mutter-specific, not a generic Wayland protocol;
+- respect the non-goals in [`docs/PROJECT_SCOPE.md`](docs/PROJECT_SCOPE.md);
+- surface the sharp edges (cursor at ~175% scale, Portal token loss, the
+  GNOME "Stop Sharing" pitfall) before recommending changes.

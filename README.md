@@ -16,6 +16,10 @@
   <a href="LICENSE"><img alt="GPL 3.0" src="https://img.shields.io/badge/license-GPL--3.0-A78BFA?style=flat-square"></a>
 </p>
 
+<p align="center">
+  <b>English</b> · <a href="README.pt-br.md">Português</a>
+</p>
+
 > [!WARNING]
 > This is an experimental GNOME/Mutter integration, validated on one GNOME 46 + NVIDIA system. It uses private D-Bus interfaces and isolated Sunshine processes. Read the [known sharp edges](#known-sharp-edges) before installing.
 
@@ -137,6 +141,17 @@ If it happens, stop both Sunshine instances, restart the virtual-monitor daemon,
 - Moonlight Android with H.264 hardware decoding
 
 </details>
+
+## AI-friendly
+
+Reading this with an assistant? Point any model — ChatGPT, Claude, Gemini,
+Copilot, or a local one — at [`docs/ai/context.md`](docs/ai/context.md) so it
+recognizes the architecture, the validated stack, and the sharp edges before
+it suggests changes. Ready-to-use prompts live in
+[`docs/ai/prompts.md`](docs/ai/prompts.md), and [`AGENTS.md`](AGENTS.md) is the
+shared entrypoint. The context is public, tied to no account, and grants no
+automated permissions — it is just shared understanding for whichever
+assistant you happen to use.
 
 ## Credit
 
