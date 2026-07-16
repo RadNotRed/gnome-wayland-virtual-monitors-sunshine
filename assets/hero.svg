@@ -1,0 +1,97 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="520" viewBox="0 0 1280 520" role="img" aria-labelledby="title description">
+  <title id="title">GNOME Wayland virtual monitors for Sunshine</title>
+  <desc id="description">A signal-routing diagram connects a 120 hertz Ubuntu host to a Windows laptop and a Galaxy A56 phone.</desc>
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0B1020"/>
+      <stop offset="0.58" stop-color="#111936"/>
+      <stop offset="1" stop-color="#171638"/>
+    </linearGradient>
+    <linearGradient id="signal" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#6EE7F2"/>
+      <stop offset="1" stop-color="#A78BFA"/>
+    </linearGradient>
+    <linearGradient id="screen" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#202B51"/>
+      <stop offset="1" stop-color="#11182F"/>
+    </linearGradient>
+    <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse">
+      <path d="M32 0H0V32" fill="none" stroke="#DCE8FF" stroke-opacity="0.045"/>
+    </pattern>
+    <filter id="glow" x="-100%" y="-100%" width="300%" height="300%">
+      <feGaussianBlur stdDeviation="5" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <rect width="1280" height="520" rx="30" fill="url(#background)"/>
+  <rect width="1280" height="520" rx="30" fill="url(#grid)"/>
+  <path d="M640 52V468" stroke="#DCE8FF" stroke-opacity="0.08"/>
+
+  <g font-family="Inter, Segoe UI, Ubuntu, sans-serif">
+    <text x="72" y="82" fill="#6EE7F2" font-size="15" font-weight="700" letter-spacing="3">GNOME · WAYLAND · PIPEWIRE</text>
+    <text x="68" y="164" fill="#F4F7FF" font-size="54" font-weight="760" letter-spacing="-1.8">
+      <tspan x="68" dy="0">Virtual monitors.</tspan>
+      <tspan x="68" dy="62">Real desktop space.</tspan>
+    </text>
+    <text x="72" y="316" fill="#B7C3DD" font-size="21" font-weight="450">
+      <tspan x="72" dy="0">Extend Ubuntu to Windows and Android.</tspan>
+      <tspan x="72" dy="32">Keep 120 Hz where it matters.</tspan>
+    </text>
+
+    <g transform="translate(72 392)">
+      <rect width="154" height="38" rx="19" fill="#6EE7F2" fill-opacity="0.10" stroke="#6EE7F2" stroke-opacity="0.42"/>
+      <circle cx="21" cy="19" r="4" fill="#6EE7F2" filter="url(#glow)"/>
+      <text x="36" y="25" fill="#DDFBFF" font-size="14" font-weight="650">H.264 · NVENC</text>
+    </g>
+    <g transform="translate(242 392)">
+      <rect width="150" height="38" rx="19" fill="#A78BFA" fill-opacity="0.10" stroke="#A78BFA" stroke-opacity="0.42"/>
+      <circle cx="21" cy="19" r="4" fill="#A78BFA" filter="url(#glow)"/>
+      <text x="36" y="25" fill="#EEE8FF" font-size="14" font-weight="650">Portal capture</text>
+    </g>
+    <text x="72" y="474" fill="#7786A8" font-family="JetBrains Mono, Ubuntu Mono, monospace" font-size="12" letter-spacing="2">ONE DESKTOP / THREE SURFACES</text>
+  </g>
+
+  <g font-family="JetBrains Mono, Ubuntu Mono, monospace">
+    <path d="M862 221H817" fill="none" stroke="url(#signal)" stroke-width="3"/>
+    <path d="M1011 334V378" fill="none" stroke="url(#signal)" stroke-width="3"/>
+    <circle cx="839" cy="221" r="5" fill="#6EE7F2" filter="url(#glow)"/>
+    <circle cx="1011" cy="356" r="5" fill="#A78BFA" filter="url(#glow)"/>
+
+    <g transform="translate(683 158)">
+      <rect width="142" height="112" rx="11" fill="#0C1226" stroke="#6EE7F2" stroke-opacity="0.7" stroke-width="2"/>
+      <rect x="10" y="10" width="122" height="82" rx="5" fill="url(#screen)"/>
+      <path d="M-12 112H154L141 124H1Z" fill="#273353" stroke="#6EE7F2" stroke-opacity="0.45"/>
+      <circle cx="119" cy="23" r="3" fill="#6EE7F2"/>
+      <text x="12" y="48" fill="#F4F7FF" font-size="13" font-weight="700">WINDOWS</text>
+      <text x="12" y="67" fill="#94A4C5" font-size="10">1366×768</text>
+      <text x="12" y="82" fill="#6EE7F2" font-size="10">60 FPS · LEFT</text>
+    </g>
+
+    <g transform="translate(862 104)">
+      <rect width="298" height="230" rx="14" fill="#0C1226" stroke="#A78BFA" stroke-opacity="0.75" stroke-width="2"/>
+      <rect x="13" y="13" width="272" height="190" rx="7" fill="url(#screen)"/>
+      <path d="M132 230V248M101 248H197" fill="none" stroke="#64749A" stroke-width="8" stroke-linecap="round"/>
+      <circle cx="268" cy="29" r="4" fill="#F6C85F" filter="url(#glow)"/>
+      <text x="31" y="69" fill="#F4F7FF" font-size="18" font-weight="700">UBUNTU HOST</text>
+      <text x="31" y="97" fill="#94A4C5" font-size="12">1920×1080</text>
+      <text x="31" y="126" fill="#F6C85F" font-size="22" font-weight="700">120 HZ</text>
+      <path d="M31 153H254" stroke="#DCE8FF" stroke-opacity="0.12"/>
+      <text x="31" y="177" fill="#A78BFA" font-size="10">MUTTER · EXTENDED LAYOUT</text>
+    </g>
+
+    <g transform="translate(890 378)">
+      <rect width="242" height="108" rx="20" fill="#0C1226" stroke="#A78BFA" stroke-opacity="0.78" stroke-width="2"/>
+      <rect x="12" y="10" width="218" height="88" rx="12" fill="url(#screen)"/>
+      <circle cx="219" cy="54" r="3" fill="#A78BFA"/>
+      <text x="30" y="42" fill="#F4F7FF" font-size="13" font-weight="700">GALAXY A56</text>
+      <text x="30" y="62" fill="#94A4C5" font-size="10">2340×1080 · 175%</text>
+      <text x="30" y="80" fill="#F6C85F" font-size="11" font-weight="700">120 FPS · BELOW</text>
+    </g>
+
+    <text x="682" y="65" fill="#7786A8" font-size="10" letter-spacing="2">LIVE TOPOLOGY</text>
+  </g>
+</svg>
