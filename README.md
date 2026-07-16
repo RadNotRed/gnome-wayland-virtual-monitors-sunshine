@@ -22,6 +22,10 @@
   <a href="LICENSE"><img alt="GPL 3.0" src="https://img.shields.io/badge/license-GPL--3.0-A78BFA?style=flat-square"></a>
 </p>
 
+<p align="center">
+  <img src="assets/demo.gif" width="100%" alt="One GNOME desktop spread across three screens: a Windows 11 laptop, the Linux (Zorin OS) host, and a Galaxy A56 phone at 120 Hz">
+</p>
+
 > [!WARNING]
 > This is an experimental GNOME/Mutter integration, validated on one GNOME 46 + NVIDIA system. It uses private D-Bus interfaces and isolated Sunshine processes. Read the [known sharp edges](#known-sharp-edges) before installing.
 
@@ -176,6 +180,10 @@ This project is independent and is not affiliated with GNOME, Sunshine, LizardBy
 <p align="center">
   Transforme um notebook Windows e um celular Android em telas estendidas de verdade.<br>
   Um único desktop GNOME, streams independentes, taxas de atualização mistas.
+</p>
+
+<p align="center">
+  <img src="assets/demo.gif" width="100%" alt="Um desktop GNOME espalhado por três telas: um notebook Windows 11, o host Linux (Zorin OS) e um celular Galaxy A56 a 120 Hz">
 </p>
 
 > [!WARNING]
