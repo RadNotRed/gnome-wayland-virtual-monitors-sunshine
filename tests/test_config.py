@@ -65,6 +65,17 @@ class ConfigTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "physical layout"):
             self.load(VALID_CONFIG.replace(b"layout_mode = 1", b"layout_mode = 2"))
 
+    def test_requires_layout_mode_to_be_the_literal_integer_one(self):
+        for invalid in (b"1.9", b"true", b'"1"'):
+            with self.subTest(value=invalid):
+                with self.assertRaisesRegex(ValueError, "literal integer 1"):
+                    self.load(
+                        VALID_CONFIG.replace(
+                            b"layout_mode = 1",
+                            b"layout_mode = " + invalid,
+                        )
+                    )
+
     def test_rejects_fractional_values_for_integer_fields(self):
         replacements = (
             (b"width = 2340", b"width = 0.5"),

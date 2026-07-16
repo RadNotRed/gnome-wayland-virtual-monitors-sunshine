@@ -122,7 +122,9 @@ def load_config(path: str | Path) -> DaemonConfig:
     daemon_data = data.get("daemon", {})
     if not isinstance(daemon_data, dict):
         raise ValueError("[daemon] must be a table")
-    layout_mode = int(daemon_data.get("layout_mode", 1))
+    layout_mode = daemon_data.get("layout_mode", 1)
+    if not isinstance(layout_mode, int) or isinstance(layout_mode, bool):
+        raise ValueError("daemon.layout_mode must be the literal integer 1")
     if layout_mode != 1:
         raise ValueError(
             "daemon.layout_mode must be 1 (logical); physical layout is not "
