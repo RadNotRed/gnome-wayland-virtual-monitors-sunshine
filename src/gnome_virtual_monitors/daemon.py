@@ -44,7 +44,7 @@ class VirtualMonitorDaemon:
     def start(self) -> None:
         self.ready_file.unlink(missing_ok=True)
         Gst.init(None)
-        self.preexisting_virtual_connectors = self._get_virtual_connectors()
+        self.preexisting_virtual_connectors = self._preflight_display()
         self.screen_cast = Gio.DBusProxy.new_for_bus_sync(
             Gio.BusType.SESSION,
             Gio.DBusProxyFlags.NONE,
@@ -180,8 +180,9 @@ class VirtualMonitorDaemon:
         spec = monitor[0]
         return str(spec[0]).startswith("Meta-") or spec[2] == "Virtual remote monitor"
 
-    def _get_virtual_connectors(self) -> set[str]:
-        display_config = Gio.DBusProxy.new_for_bus_sync(
+    @staticmethod
+    def _new_display_config_proxy() -> Gio.DBusProxy:
+        return Gio.DBusProxy.new_for_bus_sync(
             Gio.BusType.SESSION,
             Gio.DBusProxyFlags.NONE,
             None,
@@ -190,23 +191,39 @@ class VirtualMonitorDaemon:
             "org.gnome.Mutter.DisplayConfig",
             None,
         )
-        _serial, monitors, _logical_monitors, _properties = display_config.call_sync(
+
+    def _get_current_state(self) -> tuple[object, ...]:
+        return self._new_display_config_proxy().call_sync(
             "GetCurrentState", None, Gio.DBusCallFlags.NONE, -1, None
         ).unpack()
-        return {monitor[0][0] for monitor in monitors if self._is_virtual(monitor)}
 
-    def _resolve_monitors(
+    def _validate_layout_mode(self, properties: dict[str, object]) -> None:
+        current_layout_mode = int(properties.get("layout-mode", 0))
+        if current_layout_mode != self.config.layout_mode:
+            raise RuntimeError(
+                f"GNOME layout mode is {current_layout_mode}, expected "
+                f"{self.config.layout_mode}; enable Mutter's "
+                "scale-monitor-framebuffer feature first"
+            )
+
+    def _preflight_display(self) -> set[str]:
+        _serial, monitors, logical_monitors, properties = self._get_current_state()
+        self._validate_layout_mode(properties)
+        self._resolve_primary_monitor(monitors, logical_monitors)
+        return {
+            monitor[0][0]
+            for monitor in monitors
+            if self._is_virtual(monitor)
+        }
+
+    def _resolve_primary_monitor(
         self,
         monitors: list[tuple[object, ...]],
         logical_monitors: list[tuple[object, ...]],
-    ) -> list[ResolvedMonitor]:
-        virtual_candidates = [
-            monitor
-            for monitor in monitors
-            if self._is_virtual(monitor)
-            and monitor[0][0] not in self.preexisting_virtual_connectors
+    ) -> ResolvedMonitor:
+        physical_monitors = [
+            monitor for monitor in monitors if not self._is_virtual(monitor)
         ]
-        physical_monitors = [monitor for monitor in monitors if not self._is_virtual(monitor)]
         if not physical_monitors:
             raise RuntimeError("No physical monitor is available")
 
@@ -220,38 +237,50 @@ class VirtualMonitorDaemon:
         )
         requested_connector = self.config.primary.connector or current_primary_connector
         primary_monitor = next(
-            (monitor for monitor in physical_monitors if monitor[0][0] == requested_connector),
+            (
+                monitor
+                for monitor in physical_monitors
+                if monitor[0][0] == requested_connector
+            ),
             None,
         )
         if primary_monitor is None:
             raise RuntimeError(
                 f"Primary connector {requested_connector!r} is not available"
             )
-        current_primary_mode = next(
-            (mode for mode in primary_monitor[1] if mode[6].get("is-current")),
-            primary_monitor[1][0],
-        )
         primary_mode = choose_mode(
             primary_monitor[1],
-            current_primary_mode[1],
-            current_primary_mode[2],
+            self.config.primary.width,
+            self.config.primary.height,
             self.config.primary.refresh,
         )
         primary_scale = choose_scale(
-            primary_mode[5], self.config.primary.scale
+            primary_mode[5],
+            self.config.primary.scale,
         )
-        resolved = [
-            ResolvedMonitor(
-                name=self.config.primary.name,
-                connector=primary_monitor[0][0],
-                mode_id=primary_mode[0],
-                width=primary_mode[1],
-                height=primary_mode[2],
-                refresh=primary_mode[3],
-                scale=primary_scale,
-                primary=True,
-            )
+        return ResolvedMonitor(
+            name=self.config.primary.name,
+            connector=primary_monitor[0][0],
+            mode_id=primary_mode[0],
+            width=primary_mode[1],
+            height=primary_mode[2],
+            refresh=primary_mode[3],
+            scale=primary_scale,
+            primary=True,
+        )
+
+    def _resolve_monitors(
+        self,
+        monitors: list[tuple[object, ...]],
+        logical_monitors: list[tuple[object, ...]],
+    ) -> list[ResolvedMonitor]:
+        virtual_candidates = [
+            monitor
+            for monitor in monitors
+            if self._is_virtual(monitor)
+            and monitor[0][0] not in self.preexisting_virtual_connectors
         ]
+        resolved = [self._resolve_primary_monitor(monitors, logical_monitors)]
 
         used_connectors: set[str] = set()
         for profile in self.config.monitors:
@@ -297,25 +326,9 @@ class VirtualMonitorDaemon:
     def _apply_layout(self) -> int:
         self.layout_attempts += 1
         try:
-            display_config = Gio.DBusProxy.new_for_bus_sync(
-                Gio.BusType.SESSION,
-                Gio.DBusProxyFlags.NONE,
-                None,
-                "org.gnome.Mutter.DisplayConfig",
-                "/org/gnome/Mutter/DisplayConfig",
-                "org.gnome.Mutter.DisplayConfig",
-                None,
-            )
-            serial, monitors, logical_monitors, properties = display_config.call_sync(
-                "GetCurrentState", None, Gio.DBusCallFlags.NONE, -1, None
-            ).unpack()
-            current_layout_mode = int(properties.get("layout-mode", 0))
-            if current_layout_mode != self.config.layout_mode:
-                raise RuntimeError(
-                    f"GNOME layout mode is {current_layout_mode}, expected "
-                    f"{self.config.layout_mode}; enable Mutter's "
-                    "scale-monitor-framebuffer feature first"
-                )
+            display_config = self._new_display_config_proxy()
+            serial, monitors, logical_monitors, properties = self._get_current_state()
+            self._validate_layout_mode(properties)
             resolved = self._resolve_monitors(monitors, logical_monitors)
             placed = place_monitors(resolved)
             layout = [

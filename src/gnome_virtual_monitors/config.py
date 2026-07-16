@@ -45,6 +45,8 @@ def load_config(path: str | Path) -> DaemonConfig:
             if primary_data.get("connector")
             else None
         ),
+        width=_positive_integer(primary_data.get("width"), "primary.width"),
+        height=_positive_integer(primary_data.get("height"), "primary.height"),
         refresh=_positive_integer(primary_data.get("refresh", 60), "primary.refresh"),
         scale=_positive_number(primary_data.get("scale", 1.0), "primary.scale"),
     )

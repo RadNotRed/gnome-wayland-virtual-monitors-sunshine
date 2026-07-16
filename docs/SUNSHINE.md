@@ -25,19 +25,13 @@ Mutter will probably call the virtual connectors `Meta-0` and `Meta-1`, but thos
 
 The normal Sunshine instance uses base port `47989`, Web UI port `47990`, and its usual config root (commonly `~/.config/sunshine`). In Sunshine's Web UI, select Portal capture and the hardware encoder for your GPU.
 
-An optional systemd drop-in makes the normal instance wait for the virtual layout:
+The main installer adds a systemd drop-in that makes the normal instance wait for the virtual layout. Confirm it is present:
 
 ```bash
-install -d -m 755 \
-  "$HOME/.config/systemd/user/app-dev.lizardbyte.app.Sunshine.service.d"
-install -m 644 \
-  experimental/systemd/app-dev.lizardbyte.app.Sunshine.service.d/virtual-monitor.conf \
-  "$HOME/.config/systemd/user/app-dev.lizardbyte.app.Sunshine.service.d/virtual-monitor.conf"
-systemctl --user daemon-reload
-systemctl --user restart app-dev.lizardbyte.app.Sunshine.service
+systemctl --user cat app-dev.lizardbyte.app.Sunshine.service
 ```
 
-If your Sunshine unit has a different name, rename the drop-in directory accordingly. In GNOME's Portal dialog, select only the 1366x768 laptop output. Pair Moonlight on Windows with this normal instance and use:
+If your Sunshine unit has a different name, move the drop-in to that unit's `.service.d/` directory before starting capture. Restart the normal instance after the daemon reports readiness. In GNOME's Portal dialog, select only the 1366x768 laptop output. Pair Moonlight on Windows with this normal instance and use:
 
 - 1366x768 at 60 FPS;
 - H.264 with hardware decoding enabled when supported;

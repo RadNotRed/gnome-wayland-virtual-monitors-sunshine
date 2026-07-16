@@ -5,14 +5,18 @@ root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 lib_dir="$HOME/.local/lib/gnome-wayland-virtual-monitors-sunshine"
 config_dir="$HOME/.config/gnome-virtual-monitors"
 unit_dir="$HOME/.config/systemd/user"
+sunshine_dropin_dir="$unit_dir/app-dev.lizardbyte.app.Sunshine.service.d"
 state_dir="$HOME/.local/state/gnome-wayland-virtual-monitors-sunshine"
 feature_marker="$state_dir/added-scale-monitor-framebuffer"
 
-install -d -m 755 "$lib_dir" "$config_dir" "$unit_dir"
+install -d -m 755 "$lib_dir" "$config_dir" "$unit_dir" "$sunshine_dropin_dir"
 install -d -m 700 "$state_dir"
 
 cp -aT "$root/src/gnome_virtual_monitors" "$lib_dir/gnome_virtual_monitors"
 install -m 644 "$root/systemd/gnome-virtual-monitor.service" "$unit_dir/gnome-virtual-monitor.service"
+install -m 644 \
+  "$root/experimental/systemd/app-dev.lizardbyte.app.Sunshine.service.d/virtual-monitor.conf" \
+  "$sunshine_dropin_dir/virtual-monitor.conf"
 
 if [[ ! -e "$config_dir/config.toml" ]]; then
   install -m 600 "$root/config/three-monitors.example.toml" "$config_dir/config.toml"

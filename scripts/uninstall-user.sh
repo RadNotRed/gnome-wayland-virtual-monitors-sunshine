@@ -2,6 +2,7 @@
 set -euo pipefail
 
 unit_dir="$HOME/.config/systemd/user"
+sunshine_dropin_dir="$unit_dir/app-dev.lizardbyte.app.Sunshine.service.d"
 state_dir="$HOME/.local/state/gnome-wayland-virtual-monitors-sunshine"
 feature_marker="$state_dir/added-scale-monitor-framebuffer"
 legacy_snapshot="$state_dir/original-experimental-features"
@@ -39,6 +40,8 @@ fi
 rm -f "$feature_marker" "$legacy_snapshot"
 
 rm -f "$unit_dir/gnome-virtual-monitor.service"
+rm -f "$sunshine_dropin_dir/virtual-monitor.conf"
+rmdir "$sunshine_dropin_dir" 2>/dev/null || true
 rm -rf "$HOME/.local/lib/gnome-wayland-virtual-monitors-sunshine"
 systemctl --user daemon-reload
 

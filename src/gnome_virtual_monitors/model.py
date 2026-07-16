@@ -9,6 +9,8 @@ from dataclasses import dataclass
 class PrimaryConfig:
     name: str
     connector: str | None
+    width: int
+    height: int
     refresh: int
     scale: float
 

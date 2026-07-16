@@ -13,6 +13,8 @@ layout_mode = 1
 
 [primary]
 name = "aoc"
+width = 1920
+height = 1080
 refresh = 120
 
 [[monitor]]
@@ -42,6 +44,10 @@ class ConfigTests(unittest.TestCase):
 
     def test_loads_multi_monitor_configuration(self):
         config = self.load()
+        self.assertEqual(
+            (config.primary.width, config.primary.height),
+            (1920, 1080),
+        )
         self.assertEqual(config.primary.refresh, 120)
         self.assertEqual([monitor.name for monitor in config.monitors], ["windows", "android"])
         self.assertEqual(config.monitors[1].refresh, 120)
@@ -79,7 +85,7 @@ class ConfigTests(unittest.TestCase):
             (
                 b'primary = "bad"\n'
                 + VALID_CONFIG.replace(
-                    b'[primary]\nname = "aoc"\nrefresh = 120',
+                    b'[primary]\nname = "aoc"\nwidth = 1920\nheight = 1080\nrefresh = 120',
                     b'',
                 ),
                 r"\[primary\] must be a table",

@@ -26,7 +26,7 @@ Provide a reproducible, user-session-only way to create extended virtual monitor
 
 - Install without a root daemon or kernel module.
 - Start in the graphical user session and wait for the monitor layout before Sunshine capture.
-- Reject ambiguous monitor roles, impossible refresh targets, cyclic placement, and invalid numeric configuration before creating outputs.
+- Reject ambiguous monitor roles, an unavailable physical mode, cyclic placement, and invalid numeric configuration before creating outputs.
 - Preserve unrelated Mutter experimental features during uninstall.
 - Document Portal reauthorization, GNOME's Stop Sharing failure mode, the Mutter fractional-scale cursor bug, rollback, testing, and sensitive files.
 - Credit Lina as creator and maintainer.
@@ -44,4 +44,5 @@ Provide a reproducible, user-session-only way to create extended virtual monitor
 - A compositor-independent Wayland protocol.
 - Guaranteed zero latency or guaranteed 120 FPS on every network/client.
 - Separate keyboard and pointer seats per client.
+- Preserving additional physical monitors in v0.1; the validated scope manages one physical primary plus virtual outputs.
 - Treating a plain USB-C cable as a network link without tethering or a network adapter.

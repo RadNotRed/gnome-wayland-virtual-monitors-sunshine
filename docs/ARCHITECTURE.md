@@ -2,14 +2,15 @@
 
 ## Virtual output lifecycle
 
-1. Create one Mutter ScreenCast session.
-2. Call `RecordVirtual` once per configured virtual monitor before starting the session.
-3. Listen for each stream's `PipeWireStreamAdded` node ID.
-4. Start a dedicated `pipewiresrc -> queue -> fakesink` pipeline per node with fixed width, height and maximum refresh.
-5. Wait for all matching virtual modes to appear in `DisplayConfig.GetCurrentState`.
-6. Select the requested physical refresh and the nearest supported per-output scales.
-7. Compute relative logical positions, normalize them to non-negative coordinates, verify the complete layout, then apply it temporarily.
-8. Publish a readiness marker in `$XDG_RUNTIME_DIR` so dependent Sunshine services start only after the layout is usable.
+1. Read `DisplayConfig.GetCurrentState`, require logical layout mode, validate the exact physical width/height/refresh, and snapshot pre-existing virtual connectors.
+2. Create one Mutter ScreenCast session.
+3. Call `RecordVirtual` once per configured virtual monitor before starting the session.
+4. Listen for each stream's `PipeWireStreamAdded` node ID.
+5. Start a dedicated `pipewiresrc -> queue -> fakesink` pipeline per node with fixed width, height and maximum refresh.
+6. Wait for all matching virtual modes to appear in `DisplayConfig.GetCurrentState`.
+7. Select the nearest supported per-output scales.
+8. Compute relative logical positions, normalize them to non-negative coordinates, verify the complete layout, then apply it temporarily.
+9. Publish a readiness marker in `$XDG_RUNTIME_DIR` so dependent Sunshine services start only after the layout is usable.
 
 The fakesink pipelines only negotiate and keep the Mutter outputs alive. Sunshine opens separate XDG Portal/PipeWire sessions to capture them.
 

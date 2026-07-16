@@ -8,6 +8,8 @@ name = "primary"
 # Replace this with your physical connector from the daemon log, or remove the
 # line to use GNOME's current primary monitor.
 connector = "HDMI-1"
+width = 1920
+height = 1080
 refresh = 120
 scale = 1.0
 

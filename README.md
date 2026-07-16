@@ -73,12 +73,12 @@ PYTHONPATH="$HOME/.local/lib/gnome-wayland-virtual-monitors-sunshine" \
 systemctl --user enable --now gnome-virtual-monitor.service
 ```
 
-The installer does not start the daemon automatically. It records whether it added Mutter's fractional-scaling feature for a non-destructive rollback and does not overwrite an existing monitor configuration.
+The installer does not start the daemon automatically. It records whether it added Mutter's fractional-scaling feature for a non-destructive rollback, installs a readiness drop-in for the normal Sunshine unit, and does not overwrite an existing monitor configuration.
 
 Before enabling the service, edit the example for your hardware:
 
 - replace `HDMI-1` with your physical connector, or remove `connector` to use GNOME's current primary monitor;
-- request only refresh rates that the corresponding displays support;
+- set the physical width, height, and refresh to a mode that the primary display supports;
 - give every virtual monitor a unique width/height pair; and
 - include every physical monitor you need. This version omits unconfigured physical outputs from the applied layout.
 
