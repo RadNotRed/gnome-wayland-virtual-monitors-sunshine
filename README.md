@@ -19,7 +19,7 @@
   <a href="https://github.com/lirenzzzin/gnome-wayland-virtual-monitors-sunshine/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/lirenzzzin/gnome-wayland-virtual-monitors-sunshine/ci.yml?branch=main&amp;style=flat-square&amp;label=checks&amp;color=6EE7F2"></a>
   <img alt="GNOME 46" src="https://img.shields.io/badge/GNOME-46-4A86CF?style=flat-square">
   <img alt="Wayland" src="https://img.shields.io/badge/session-Wayland-F6C85F?style=flat-square">
-  <a href="LICENSE"><img alt="GPL 3.0" src="https://img.shields.io/badge/license-GPL--3.0-A78BFA?style=flat-square"></a>
+  <a href="LICENSE"><img alt="Unlicense" src="https://img.shields.io/badge/license-Unlicense-A78BFA?style=flat-square"></a>
 </p>
 
 <p align="center">
@@ -128,6 +128,7 @@ If it happens, stop both Sunshine instances, restart the virtual-monitor daemon,
 | [Project scope](docs/PROJECT_SCOPE.md) | you want the exact promises and non-goals |
 | [Architecture](docs/ARCHITECTURE.md) | you want to understand Mutter, PipeWire, layout, and readiness |
 | [Sunshine + Moonlight](docs/SUNSHINE.md) | you are pairing Windows or Android and tuning 60/120 FPS |
+| [FAQ](docs/FAQ.md) | you rebooted or restarted and Moonlight suddenly can't connect |
 | [Troubleshooting](docs/TROUBLESHOOTING.md) | Portal, cursor, output selection, or FPS behaves incorrectly |
 | [Testing](docs/TESTING.md) | you are validating a new machine or GNOME release |
 | [Rollback](docs/ROLLBACK.md) | you want to remove the daemon without deleting client state |
@@ -161,7 +162,7 @@ assistant you happen to use.
 
 ## Credit
 
-Created and maintained by **Lina**. Licensed under [GPL-3.0-or-later](LICENSE).
+Created by **Lina** and released into the public domain under [The Unlicense](LICENSE). Do whatever you want with it — fork it, ship it, sell it, no attribution required.
 
 This project is independent and is not affiliated with GNOME, Sunshine, LizardByte, Moonlight, NVIDIA, Microsoft, or Samsung.
 
@@ -288,6 +289,7 @@ Se acontecer, pare as duas instâncias do Sunshine, reinicie o daemon de monitor
 | [Escopo do projeto](docs/PROJECT_SCOPE.md) | você quer as promessas exatas e os não-objetivos |
 | [Arquitetura](docs/ARCHITECTURE.md) | você quer entender Mutter, PipeWire, layout e readiness |
 | [Sunshine + Moonlight](docs/SUNSHINE.md) | você está pareando Windows ou Android e ajustando 60/120 FPS |
+| [FAQ](docs/FAQ.md) | você reiniciou e de repente o Moonlight não conecta mais |
 | [Solução de problemas](docs/TROUBLESHOOTING.md) | Portal, cursor, seleção de saída ou FPS se comportam mal |
 | [Testes](docs/TESTING.md) | você está validando uma máquina nova ou versão do GNOME |
 | [Rollback](docs/ROLLBACK.md) | você quer remover o daemon sem apagar o estado do cliente |
@@ -314,6 +316,6 @@ Lendo isto com um assistente? Aponte qualquer modelo — ChatGPT, Claude, Gemini
 
 ## Créditos
 
-Criado e mantido por **Lina**. Licenciado sob [GPL-3.0-or-later](LICENSE).
+Criado por **Lina** e liberado em domínio público sob [The Unlicense](LICENSE). Faça o que quiser — fork, publique, venda, sem precisar dar créditos.
 
 Este projeto é independente e não tem afiliação com GNOME, Sunshine, LizardByte, Moonlight, NVIDIA, Microsoft ou Samsung.

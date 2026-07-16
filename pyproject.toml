@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "GNOME Wayland virtual extended monitors for Sunshine/Moonlight"
 authors = [{ name = "Lina" }]
 requires-python = ">=3.11"
-license = { text = "GPL-3.0-or-later" }
+license = { text = "Unlicense" }
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]
