@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install runtime dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes \
+            python3-gi \
+            gir1.2-gstreamer-1.0 \
+            gstreamer1.0-pipewire \
+            gstreamer1.0-tools \
+            pipewire-bin
+
+      - name: Run unit tests
+        run: PYTHONPATH=src python3 -m unittest discover -s tests -v
+
+      - name: Validate example configuration
+        run: |
+          PYTHONPATH=src python3 -m gnome_virtual_monitors \
+            --config config/three-monitors.example.toml \
+            --check-config
+
+      - name: Run static checks
+        run: |
+          python3 -m compileall -q src
+          bash -n scripts/*.sh
+          python3 -m json.tool experimental/sunshine/apps.json.example >/dev/null
+          systemd-analyze --user verify \
+            systemd/gnome-virtual-monitor.service \
+            experimental/systemd/app-dev.lizardbyte.app.Sunshine.Android.service
+          git diff --check

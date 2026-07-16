@@ -1,0 +1,22 @@
+sunshine_name = GNOME-Android-Monitor
+port = 48049
+
+capture = portal
+encoder = nvenc
+nvenc_preset = 1
+nvenc_twopass = disabled
+nvenc_spatial_aq = disabled
+nvenc_vbv_increase = 0
+
+hevc_mode = 1
+av1_mode = 1
+stream_audio = disabled
+# Disabling LAN encryption minimizes overhead but is appropriate only on a
+# trusted local network. Use mode 1 or 2 when that assumption does not hold.
+lan_encryption_mode = 0
+upnp = disabled
+origin_web_ui_allowed = pc
+system_tray = disabled
+
+# Resolution and FPS are requested by Moonlight. Current Sunshine releases
+# ignore `resolutions` and `fps` when placed in sunshine.conf.

@@ -1,0 +1,15 @@
+[Unit]
+Description=GNOME virtual monitors for Sunshine
+After=graphical-session.target pipewire.service
+PartOf=graphical-session.target
+Before=app-dev.lizardbyte.app.Sunshine.service app-dev.lizardbyte.app.Sunshine.Android.service
+
+[Service]
+Type=simple
+Environment=PYTHONPATH=%h/.local/lib/gnome-wayland-virtual-monitors-sunshine
+ExecStart=/usr/bin/python3 -m gnome_virtual_monitors --config %h/.config/gnome-virtual-monitors/config.toml
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=graphical-session.target
