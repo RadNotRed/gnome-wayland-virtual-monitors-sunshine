@@ -13,6 +13,8 @@ install -d -m 755 "$lib_dir" "$config_dir" "$unit_dir" "$sunshine_dropin_dir"
 install -d -m 700 "$state_dir"
 
 cp -aT "$root/src/gnome_virtual_monitors" "$lib_dir/gnome_virtual_monitors"
+install -d -m 755 "$lib_dir/examples"
+install -m 644 "$root"/config/*.example.toml "$lib_dir/examples/"
 install -m 644 "$root/systemd/gnome-virtual-monitor.service" "$unit_dir/gnome-virtual-monitor.service"
 install -m 644 \
   "$root/experimental/systemd/app-dev.lizardbyte.app.Sunshine.service.d/virtual-monitor.conf" \

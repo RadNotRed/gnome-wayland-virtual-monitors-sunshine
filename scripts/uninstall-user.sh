@@ -45,4 +45,4 @@ rmdir "$sunshine_dropin_dir" 2>/dev/null || true
 rm -rf "$HOME/.local/lib/gnome-wayland-virtual-monitors-sunshine"
 systemctl --user daemon-reload
 
-printf 'Code and unit removed. Configuration and all Sunshine state were preserved.\n'
+printf 'Code and unit removed. Configuration, saved display layouts, and all Sunshine state were preserved.\n'

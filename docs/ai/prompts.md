@@ -33,3 +33,11 @@ exact modes, transforms, scales and primary status. Do not assume a single
 physical display or copy machine-specific far-right placement. Relative placement
 still uses configured roles. The legacy opt-out is explicit. Unit tests cover
 multi-physical layouts; do not equate mocked tests with live GNOME validation.
+
+## Preserve a customized desktop
+
+> My host has `<count>` physical monitors with `<rotations/scales>` and configured
+> virtual roles `<names/resolutions>`. Explain how to save the active layout and
+> enable restoration without depending on temporary Meta connectors. Before a
+> live test, back up config and installed source and stop capture instances first.
+> Distinguish mocked tests, verify-only checks and actual output lifecycle testing.

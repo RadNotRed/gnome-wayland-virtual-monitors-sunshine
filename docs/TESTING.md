@@ -55,3 +55,30 @@ Back up configuration and installed source before replacing a working setup.
 Stop Sunshine instances before testing daemon stop/restart. Confirm that stopping
 the daemon removes its virtual outputs and leaves a usable physical desktop.
 Never use GNOME's global Stop Sharing control for this test.
+
+## Persistence acceptance matrix
+
+| Scenario | Expected result |
+| --- | --- |
+| Save, recreate with different `Meta-*`, restore | Same role geometry, new connector |
+| Manual virtual scale/rotation/primary/position | Saved values restored before readiness |
+| Physical mirrored group | Group and exact per-connector modes retained |
+| Physical connector missing or moved | Explicit failure, no ready marker |
+| New active physical output absent from save | Explicit failure, never silently disabled |
+| Missing/ambiguous virtual role | Explicit failure, no arbitrary candidate |
+| Malformed file / unavailable mode or scale | Explicit failure |
+| No file, restore enabled | Normal configured relative placement |
+| Restore disabled | Save is ignored |
+
+Run `python3 -m pytest` when pytest is installed, as well as CI's unittest command;
+compile both `src` and `tests`. Validate every `config/*.example.toml` file.
+The unit tests mock Mutter states. Upstream's live baseline remains GNOME 46.2.
+A separate GNOME Shell 50.5 acceptance run exercised this implementation with
+three physical monitors and one configured virtual output: creation, save, stop,
+recreation, automatic restore and stop. Exact physical modes/refresh, positions,
+scales, transforms and primary status were unchanged, and temporary outputs were
+removed. The test used isolated state/readiness paths and did not replace installed
+config/source. Mutter reused the same virtual connector in this run; changed-name
+remapping is covered by unit tests. Sunshine capture, Portal reauthorization,
+physical mirroring, mixed physical scaling and suspend/resume were not validated
+live. One workstation is not general GNOME 50 support certification.

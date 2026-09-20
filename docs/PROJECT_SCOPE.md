@@ -13,6 +13,15 @@ coordinate adjustment. Existing virtual sessions are also retained, but never
 used as newly created roles. Inactive physical outputs are not enabled.
 Legacy single-primary behavior is available with `preserve_physical_monitors = false`.
 
+## Saved layout behavior
+
+Manual `--save-layout` plus opt-in `restore_saved_layout = true` preserves desired
+logical geometry across virtual output recreation. Virtual identity is a configured
+role with unique dimensions, never its temporary connector name. Missing/ambiguous
+roles, missing physical connectors, unavailable modes/scales, malformed state, or
+an active display omitted from the save cause safe failure. No save is required.
+This is not automatic GNOME settings synchronization or a hotplug policy engine.
+
 ## Validated layout
 
 - Keep the physical 1920x1080 primary display at 120 Hz.

@@ -35,6 +35,7 @@ class DaemonConfig:
     layout_retries: int
     startup_timeout: int
     preserve_physical_monitors: bool = True
+    restore_saved_layout: bool = False
 
 
 @dataclass(frozen=True)

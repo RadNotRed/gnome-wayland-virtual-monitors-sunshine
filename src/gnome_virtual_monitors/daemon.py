@@ -19,6 +19,9 @@ from .display_state import (
 )
 from .layout import choose_mode, choose_scale, place_monitors
 from .model import DaemonConfig, LogicalMonitor, ResolvedMonitor, VirtualMonitorConfig
+from .saved_layout import (
+    default_state_path, read_saved_layout, restore_layout, validate_saved_setup,
+)
 
 
 @dataclass
@@ -42,6 +45,7 @@ class VirtualMonitorDaemon:
         self.preexisting_virtual_connectors: set[str] = set()
         self.preserved_layout: tuple[LogicalMonitor, ...] = ()
         self.anchor: tuple[LogicalMonitor, ResolvedMonitor] | None = None
+        self.saved_layout: dict | None = None
         runtime_dir = Path(
             os.environ.get("XDG_RUNTIME_DIR", f"/run/user/{os.getuid()}")
         )
@@ -212,9 +216,16 @@ class VirtualMonitorDaemon:
     def _preflight_display(self) -> set[str]:
         _serial, monitors, logical_monitors, properties = self._get_current_state()
         self._validate_layout_mode(properties)
+        if self.config.restore_saved_layout:
+            self.saved_layout = read_saved_layout(default_state_path())
+            if self.saved_layout is None:
+                print("No saved layout; using configured relative placement", flush=True)
+            else:
+                validate_saved_setup(self.saved_layout, self.config, monitors, logical_monitors)
         if self.config.preserve_physical_monitors:
             self.preserved_layout = snapshot_layout(monitors, logical_monitors)
-            self.anchor = physical_anchor(self.config, self.preserved_layout, monitors)
+            if self.saved_layout is None:
+                self.anchor = physical_anchor(self.config, self.preserved_layout, monitors)
         else:
             self._resolve_primary_monitor(monitors, logical_monitors)
         return {
@@ -292,7 +303,15 @@ class VirtualMonitorDaemon:
             display_config = self._new_display_config_proxy()
             serial, monitors, logical_monitors, properties = self._get_current_state()
             self._validate_layout_mode(properties)
-            if self.config.preserve_physical_monitors:
+            if self.saved_layout is not None:
+                roles = resolve_virtual_roles(
+                    self.config, monitors, self.preexisting_virtual_connectors,
+                    use_configured_scale=False,
+                )
+                layout = apply_layout_payload(restore_layout(
+                    self.saved_layout, self.config, monitors, logical_monitors, roles
+                ))
+            elif self.config.preserve_physical_monitors:
                 validate_preserved_modes(self.preserved_layout, monitors)
                 if self.anchor is None:
                     raise RuntimeError("Physical layout was not captured before output creation")
@@ -334,7 +353,7 @@ class VirtualMonitorDaemon:
             self.ready_file.write_text("ready\n", encoding="utf-8")
             self.ready_file.chmod(0o600)
             summary = "; ".join(
-                f"{','.join(output[0] for output in outputs)} "
+                f"{','.join(output[0] + '/' + output[1] for output in outputs)} "
                 f"scale={scale:.6g} transform={transform} primary={primary} pos={x},{y}"
                 for x, y, scale, transform, primary, outputs in layout
             )

@@ -126,3 +126,74 @@ class DaemonLayoutTests(unittest.TestCase):
             self.assertTrue(daemon.failed)
             self.assertFalse(daemon.ready_file.exists())
             self.assertEqual(proxy.call_sync.call_count, 1)
+
+    def test_saved_layout_is_applied_before_ready(self):
+        from gnome_virtual_monitors.saved_layout import capture_saved_layout
+        from test_display_state import logical
+        with tempfile.TemporaryDirectory() as directory:
+            daemon = self.make_daemon(directory)
+            _serial, monitors, groups, _props = daemon._get_current_state()
+            groups = [(*group[:4], False, *group[5:]) for group in groups[:-1]]
+            groups.append(logical(monitors[-1], x=3000, y=100, scale=1.5, transform=3))
+            daemon.saved_layout = capture_saved_layout(daemon.config, monitors, groups)
+            proxy = mock.Mock()
+            payloads = []
+            def apply(_method, variant, *_args):
+                self.assertFalse(daemon.ready_file.exists())
+                payloads.append(variant.unpack())
+            proxy.call_sync.side_effect = apply
+            daemon._new_display_config_proxy = mock.Mock(return_value=proxy)
+            daemon._apply_layout()
+            self.assertTrue(daemon.ready_file.exists())
+            self.assertEqual(payloads[-1][2][-1][:5], (3000, 100, 1.5, 3, True))
+
+    def test_invalid_saved_restore_never_calls_apply_or_marks_ready(self):
+        from gnome_virtual_monitors.saved_layout import capture_saved_layout
+        with tempfile.TemporaryDirectory() as directory:
+            daemon = self.make_daemon(directory)
+            _serial, monitors, groups, _props = daemon._get_current_state()
+            daemon.saved_layout = capture_saved_layout(daemon.config, monitors, groups)
+            daemon.saved_layout["logical_monitors"][0]["outputs"][0]["identity"] = "missing"
+            proxy = mock.Mock()
+            daemon._new_display_config_proxy = mock.Mock(return_value=proxy)
+            daemon._apply_layout()
+            self.assertTrue(daemon.failed)
+            self.assertFalse(daemon.ready_file.exists())
+            proxy.call_sync.assert_not_called()
+
+    def test_restore_without_state_uses_normal_placement(self):
+        from dataclasses import replace
+        with tempfile.TemporaryDirectory() as directory:
+            daemon = self.make_daemon(directory)
+            daemon.config = replace(daemon.config, restore_saved_layout=True)
+            with mock.patch("gnome_virtual_monitors.daemon.read_saved_layout", return_value=None):
+                daemon._preflight_display()
+            self.assertIsNone(daemon.saved_layout)
+            self.assertIsNotNone(daemon.anchor)
+
+    def test_invalid_saved_identities_fail_preflight_before_creation(self):
+        from dataclasses import replace
+        from gnome_virtual_monitors.saved_layout import capture_saved_layout
+        with tempfile.TemporaryDirectory() as directory:
+            daemon = self.make_daemon(directory)
+            daemon.config = replace(daemon.config, restore_saved_layout=True)
+            _serial, monitors, groups, _props = daemon._get_current_state()
+            saved = capture_saved_layout(daemon.config, monitors, groups)
+            saved["logical_monitors"][0]["outputs"][0]["identity"] = "missing"
+            with mock.patch("gnome_virtual_monitors.daemon.read_saved_layout", return_value=saved):
+                with self.assertRaisesRegex(RuntimeError, "physical connector missing"):
+                    daemon._preflight_display()
+
+    def test_new_active_connector_during_startup_is_not_disabled(self):
+        from test_display_state import logical, monitor
+        with tempfile.TemporaryDirectory() as directory:
+            daemon = self.make_daemon(directory)
+            serial, monitors, groups, props = daemon._get_current_state()
+            new = monitor("new-physical")
+            daemon._get_current_state.return_value = (serial, [*monitors, new], [*groups, logical(new, primary=False)], props)
+            proxy = mock.Mock()
+            daemon._new_display_config_proxy = mock.Mock(return_value=proxy)
+            daemon._apply_layout()
+            self.assertTrue(daemon.failed)
+            self.assertFalse(daemon.ready_file.exists())
+            proxy.call_sync.assert_not_called()

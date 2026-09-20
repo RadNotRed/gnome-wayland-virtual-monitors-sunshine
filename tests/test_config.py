@@ -147,3 +147,15 @@ class ConfigTests(unittest.TestCase):
                 self.load(VALID_CONFIG.replace(
                     b"layout_mode = 1", b"layout_mode = 1\npreserve_physical_monitors = " + value
                 ))
+
+    def test_restore_defaults_to_false_and_accepts_true(self):
+        self.assertFalse(self.load().restore_saved_layout)
+        self.assertTrue(self.load(VALID_CONFIG.replace(
+            b"layout_mode = 1", b"layout_mode = 1\nrestore_saved_layout = true"
+        )).restore_saved_layout)
+
+    def test_restore_requires_preservation_and_boolean(self):
+        for settings in (b'restore_saved_layout = "true"',
+                         b'restore_saved_layout = true\npreserve_physical_monitors = false'):
+            with self.assertRaisesRegex(ValueError, "restore_saved_layout"):
+                self.load(VALID_CONFIG.replace(b"layout_mode = 1", b"layout_mode = 1\n" + settings))

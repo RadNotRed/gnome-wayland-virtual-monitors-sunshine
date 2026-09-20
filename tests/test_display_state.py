@@ -102,3 +102,24 @@ class DisplayStateTests(unittest.TestCase):
         result = compose_layout(layout, physical_anchor(config, layout, outputs), virtuals)
         self.assertEqual([g.x for g in result], [1280, 3200, 0])
         self.assertEqual(result[1].x - result[0].x, 1920)
+
+    def test_chained_virtual_roles_keep_relative_placement(self):
+        config = configuration()
+        second = replace(config.monitors[0], name="second", width=800, height=600,
+                         relative_to="client", position="right")
+        config = replace(config, monitors=(*config.monitors, second))
+        physical = monitor("physical-A")
+        baseline = snapshot_layout([physical], [logical(physical)])
+        roles = resolve_virtual_roles(config, [monitor("Meta-7", 1280, 720, 60, True),
+                                               monitor("Meta-8", 800, 600, 60, True)], set())
+        layout = compose_layout(baseline, physical_anchor(config, baseline, [physical]), roles)
+        self.assertEqual([(g.x, g.y) for g in layout], [(0, 0), (0, 1080), (1280, 1080)])
+
+    def test_preexisting_virtual_group_is_retained_but_not_reused(self):
+        physical = monitor("physical-A")
+        old = monitor("Meta-2", 1280, 720, 60, True)
+        baseline = snapshot_layout([physical, old], [logical(physical), logical(old, x=1920, primary=False)])
+        roles = resolve_virtual_roles(configuration(), [physical, old, monitor("Meta-3", 1280, 720, 60, True)], {"Meta-2"})
+        layout = compose_layout(baseline, physical_anchor(configuration(), baseline, [physical, old]), roles)
+        self.assertEqual(layout[:2], list(baseline))
+        self.assertEqual(layout[-1].monitors[0].connector, "Meta-3")

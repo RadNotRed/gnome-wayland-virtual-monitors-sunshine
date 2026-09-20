@@ -29,9 +29,10 @@ jobs:
 
       - name: Validate example configuration
         run: |
-          PYTHONPATH=src python3 -m gnome_virtual_monitors \
-            --config config/three-monitors.example.toml \
-            --check-config
+          for config in config/*.example.toml; do
+            PYTHONPATH=src python3 -m gnome_virtual_monitors \
+              --config "$config" --check-config
+          done
 
       - name: Run static checks
         run: |

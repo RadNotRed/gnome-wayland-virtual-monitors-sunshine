@@ -67,3 +67,12 @@ exact modes, transforms, scales and primary status. Do not assume a single
 physical display or copy machine-specific far-right placement. Relative placement
 still uses configured roles. The legacy opt-out is explicit. Unit tests cover
 multi-physical layouts; do not equate mocked tests with live GNOME validation.
+
+Saved layouts use manual `--save-layout` plus optional `restore_saved_layout` at
+startup. Persistent virtual identities are configured roles, not `Meta-*` names.
+Physical connectors and exact modes are retained; ambiguous, missing or omitted
+active outputs fail safely. No saved file falls back to configured placement.
+Do not conflate layout persistence with Sunshine Portal token persistence. A separate
+GNOME 50.5 lifecycle test passed for three physical + one virtual output, including
+save/recreate/restore/stop. This is one workstation, not universal GNOME 50 support;
+Sunshine streaming was not exercised in that test. See docs/TESTING.md for limits.

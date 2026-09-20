@@ -124,3 +124,56 @@ A change from `Meta-0` to `Meta-1` is normal. The daemon excludes pre-existing
 virtual outputs and matches new roles by unique configured resolution. Give each
 virtual role a distinct width/height pair. Do not run competing output creators
 with identical resolutions during startup; ambiguous matches fail safely.
+
+## Wrong monitor position after restart
+
+Without saved restoration, virtual roles return to configured relative placement.
+While the daemon is running, arrange the virtual display in GNOME Settings, run
+`--save-layout` as documented in the README, and enable `restore_saved_layout`.
+The ready marker is written after restoration. A common translation at the desktop
+origin may change absolute coordinates when adding a left/above virtual display;
+physical spacing must remain unchanged.
+
+## Saved layout cannot match a recreated display
+
+A `Meta-0` to `Meta-1` change alone is harmless. Restore matches configured role
+names/resolutions to the newly created outputs. Missing roles or changed configured
+name/resolution/refresh require a new save. Two indistinguishable virtual outputs
+are rejected, never selected arbitrarily. Stop competing creators and use unique
+virtual width/height pairs. Keep the same config when saving and starting.
+
+## Additional physical connector missing or new physical display present
+
+A saved connector must exist with its saved mode and scale. Reconnect it or disable
+saved restoration, start with the new physical arrangement and save again. A new
+active physical output absent from the saved layout is also an error: an old save
+must not disable it. Physical identity is the connector, not the monitor serial;
+moving a cable to another connector requires a new save.
+
+## High-DPI 4K virtual display makes UI tiny
+
+Increase the virtual role's `scale`, for example from 1.0 to 1.5 or 2.0, while
+keeping its native capture dimensions. The daemon chooses Mutter's nearest
+supported value for config-driven placement, within 0.05. Restore instead requires
+the saved scale to be supported and does not silently round it. Arrange and save
+again after changing scale in GNOME Settings. If a saved layout is enabled, it
+takes precedence over the configured scale. Fractional scaling may soften XWayland
+apps and can encounter the documented Mutter 46 cursor bug; integer scaling avoids
+that particular fractional setting. Check Moonlight's requested native resolution.
+
+## Reset a saved layout safely / return to physical-only desktop
+
+Stop your isolated Sunshine instances first, then the normal capture instance,
+then `gnome-virtual-monitor.service`. Do not click GNOME's Stop Sharing button.
+To keep the save as a backup:
+
+```bash
+state="${XDG_STATE_HOME:-$HOME/.local/state}/gnome-wayland-virtual-monitors-sunshine/layout.json"
+if [ -f "$state" ]; then mv -- "$state" "$state.backup-$(date +%Y%m%d-%H%M%S)"; fi
+```
+
+Alternatively set `restore_saved_layout = false`. Restarting without the save uses
+normal relative placement; leaving the daemon stopped gives the physical-only
+session. Confirm the physical arrangement in GNOME Settings. Do not delete Sunshine
+credentials or Portal tokens as part of a display-layout reset. A malformed JSON
+file fails clearly; moving it aside is safer than hand-editing identifiers.

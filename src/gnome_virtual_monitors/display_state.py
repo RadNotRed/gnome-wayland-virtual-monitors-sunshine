@@ -51,7 +51,8 @@ def validate_preserved_modes(layout: Sequence[LogicalMonitor], monitors: Sequenc
 
 
 def resolve_virtual_roles(
-    config: DaemonConfig, monitors: Sequence, excluded: set[str]
+    config: DaemonConfig, monitors: Sequence, excluded: set[str],
+    *, use_configured_scale: bool = True,
 ) -> list[ResolvedMonitor]:
     candidates = [m for m in monitors if is_virtual(m) and m[0][0] not in excluded]
     resolved = []
@@ -71,7 +72,7 @@ def resolve_virtual_roles(
         mode = choose_mode(candidate[1], profile.width, profile.height, profile.refresh)
         resolved.append(ResolvedMonitor(
             profile.name, candidate[0][0], *mode[:4],
-            choose_scale(mode[5], profile.scale), False,
+            choose_scale(mode[5], profile.scale) if use_configured_scale else float(mode[4]), False,
             profile.relative_to, profile.position, profile.alignment,
         ))
     return resolved

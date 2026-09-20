@@ -49,9 +49,10 @@ Under the hood, a user daemon asks Mutter for `RecordVirtual` outputs, keeps the
 
 Virtual outputs extend the existing desktop. By default, all active physical
 logical monitors retain their exact modes (including refresh), scale, rotation,
-primary status and groupings. Disabled physical outputs stay disabled. The
-original GNOME 46.2 setup remains the upstream validation baseline; broader
-multi-monitor and newer GNOME testing is welcome.
+primary status and groupings. Disabled physical outputs stay disabled. Validated upstream on GNOME 46.x (46.2). Multi-physical-monitor support has also
+been exercised on GNOME 50.x (50.5), but broader testing is still welcome.
+That check covered creation, stop, recreation and saved-layout restoration with
+three physical displays; it did not validate Sunshine streaming on GNOME 50.
 
 `[daemon] preserve_physical_monitors = true` is the default. Existing config files
 still parse. In this mode `[primary]` names the placement anchor: `connector`
@@ -68,6 +69,62 @@ monitor is rejected by Mutter's verification, not silently moved to another edge
 When adding an output left of or above the current origin, all coordinates shift
 together to keep Mutter's origin non-negative. Physical spacing is unchanged;
 otherwise physical X/Y coordinates are preserved exactly.
+
+## Save and restore a customized layout
+
+While the daemon is running, adjust the virtual display in GNOME Settings
+(position, scale, orientation or primary), then save the active layout:
+
+```bash
+PYTHONPATH="$HOME/.local/lib/gnome-wayland-virtual-monitors-sunshine" \
+  python3 -m gnome_virtual_monitors --save-layout
+```
+
+Set `restore_saved_layout = true` under `[daemon]` in your config to use that save
+on future starts. It defaults to false and requires physical preservation.
+No saved file means ordinary configured relative placement. A malformed or
+incompatible save causes a clear failure; it is never silently applied to a
+different monitor. After changing virtual role names/resolutions/refresh or
+physical connections, disable restore, start normally, arrange and save again.
+
+The versioned file is `$XDG_STATE_HOME/gnome-wayland-virtual-monitors-sunshine/layout.json`
+(default `~/.local/state/gnome-wayland-virtual-monitors-sunshine/layout.json`).
+Physical outputs use connector identities and exact mode IDs; virtual outputs use
+configured role names and unique resolution characteristics. Changing `Meta-*`
+numbers is expected. The save includes complete logical groups, positions, scale,
+transform, primary and modes; it contains no hardware serials or Sunshine state.
+Portal selection may still need renewal after output recreation.
+
+See [the multi-physical example](config/multiple-physical.example.toml) for a
+3840×2160 virtual client with 150% scaling. This is an example, not a hardware
+requirement. Choose a scale supported by Mutter (2.0 gives integer scaling), an
+unoccupied placement edge, and the same native capture resolution in Moonlight.
+Changing GNOME scale makes UI larger without lowering the configured stream size.
+The known Mutter 46 fractional cursor issue still applies.
+
+## Start and stop on demand
+
+Use `start` rather than `enable --now` if you do not want automatic startup:
+
+```bash
+systemctl --user start gnome-virtual-monitor.service
+# Start your Sunshine client instances after layout readiness.
+systemctl --user start app-dev.lizardbyte.app.Sunshine.service
+systemctl --user start app-dev.lizardbyte.app.Sunshine.Android.service
+```
+
+Stop each configured capture instance first, then remove the virtual outputs:
+
+```bash
+systemctl --user stop app-dev.lizardbyte.app.Sunshine.Android.service
+systemctl --user stop app-dev.lizardbyte.app.Sunshine.service
+systemctl --user stop gnome-virtual-monitor.service
+```
+
+The Android unit is a retained example of an isolated **client instance**; the
+same architecture works for a TV, laptop, tablet or phone. Each instance needs its
+own service identity, XDG config root, credentials, certificates, pairing, Portal
+token and non-overlapping port family. See [Sunshine setup](docs/SUNSHINE.md).
 
 ## Quick start
 
@@ -109,7 +166,7 @@ systemctl --user enable --now gnome-virtual-monitor.service
 
 Before enabling the service:
 
-- set the physical connector, width, height, and refresh for your primary display;
+- choose the physical placement anchor (omit `primary.connector` to use GNOME’s primary);
 - give every virtual monitor a unique width/height pair; and
 - keep the existing physical arrangement in GNOME Settings; physical preservation is enabled by default.
 
@@ -230,6 +287,22 @@ O desktop validado é assim:
 
 Nos bastidores, um daemon de usuário pede ao Mutter saídas `RecordVirtual`, mantém vivos os nós PipeWire dessas saídas e aplica o layout estendido. O Sunshine captura cada saída pela sua própria sessão do XDG Portal.
 
+## Vários monitores físicos e layout salvo
+
+Por padrão, o daemon preserva os grupos físicos ativos, modos, refresh, escala,
+rotação e tela primária. `preserve_physical_monitors = false` seleciona o modo
+legado com apenas uma primária física. Os campos de modo em `[primary]` só alteram
+a tela física no modo legado. Uma translação comum pode ser necessária ao adicionar
+uma saída à esquerda ou acima da origem; a disposição relativa é preservada.
+
+Após ajustar as telas nas configurações do GNOME, execute `--save-layout` com o
+mesmo `PYTHONPATH` usado abaixo e ative `restore_saved_layout = true` em `[daemon]`.
+O arquivo fica em `$XDG_STATE_HOME/gnome-wayland-virtual-monitors-sunshine/layout.json`
+(por padrão `~/.local/state/...`). Sem arquivo, o posicionamento configurado é usado.
+Os papéis virtuais usam nomes configurados, não conectores temporários `Meta-*`.
+Consulte a seção em inglês para comandos completos e o exemplo
+[`multiple-physical.example.toml`](config/multiple-physical.example.toml).
+
 ## Início rápido
 
 ### 1. Instale as dependências do host
@@ -270,7 +343,7 @@ systemctl --user enable --now gnome-virtual-monitor.service
 
 Antes de habilitar o serviço:
 
-- defina o conector físico, largura, altura e refresh da sua tela principal;
+- escolha a tela física de referência (omita `primary.connector` para usar a primária do GNOME);
 - dê a cada monitor virtual um par largura/altura único; e
 - mantenha a disposição física no painel de configurações do GNOME; ela é preservada por padrão.
 

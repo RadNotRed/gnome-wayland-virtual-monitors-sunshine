@@ -135,7 +135,14 @@ def load_config(path: str | Path) -> DaemonConfig:
     if not isinstance(preserve, bool):
         raise ValueError("daemon.preserve_physical_monitors must be a boolean")
 
+    restore = daemon_data.get("restore_saved_layout", False)
+    if not isinstance(restore, bool):
+        raise ValueError("daemon.restore_saved_layout must be a boolean")
+    if restore and not preserve:
+        raise ValueError("restore_saved_layout requires preserve_physical_monitors = true")
+
     return DaemonConfig(
+        restore_saved_layout=restore,
         preserve_physical_monitors=preserve,
         primary=primary,
         monitors=tuple(monitors),
