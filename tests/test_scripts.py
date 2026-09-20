@@ -8,7 +8,6 @@ import textwrap
 import unittest
 from pathlib import Path
 
-
 REPOSITORY = Path(__file__).resolve().parents[1]
 
 
@@ -23,10 +22,7 @@ class UninstallScriptTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             home = root / "home"
-            state_dir = (
-                home
-                / ".local/state/gnome-wayland-virtual-monitors-sunshine"
-            )
+            state_dir = home / ".local/state/gnome-wayland-virtual-monitors-sunshine"
             state_dir.mkdir(parents=True)
             if marker:
                 (state_dir / "added-scale-monitor-framebuffer").touch()
@@ -46,8 +42,7 @@ class UninstallScriptTests(unittest.TestCase):
             )
             self.write_executable(
                 fake_bin / "gsettings",
-                textwrap.dedent(
-                    """\
+                textwrap.dedent("""\
                     #!/usr/bin/env python3
                     import os
                     import sys
@@ -60,8 +55,7 @@ class UninstallScriptTests(unittest.TestCase):
                         state.write_text(sys.argv[-1], encoding="utf-8")
                     else:
                         raise SystemExit(2)
-                    """
-                ),
+                    """),
             )
 
             environment = os.environ.copy()
@@ -103,3 +97,60 @@ class UninstallScriptTests(unittest.TestCase):
             features,
             ["scale-monitor-framebuffer", "unrelated-feature"],
         )
+
+
+class InstallScriptTests(unittest.TestCase):
+    def test_reinstall_keeps_config_and_installs_persistence_and_examples(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            home = root / "home"
+            config = home / ".config/gnome-virtual-monitors/config.toml"
+            config.parent.mkdir(parents=True)
+            config.write_text("user-owned configuration\n")
+            state = (
+                home
+                / ".local/state/gnome-wayland-virtual-monitors-sunshine/layout.json"
+            )
+            state.parent.mkdir(parents=True)
+            state.write_text("user-owned saved layout\n")
+            fake_bin = root / "bin"
+            fake_bin.mkdir()
+            UninstallScriptTests.write_executable(
+                fake_bin / "systemctl", "#!/bin/sh\nexit 0\n"
+            )
+            UninstallScriptTests.write_executable(
+                fake_bin / "gsettings",
+                '#!/bin/sh\nif [ "$1" = get ]; then echo "[\'scale-monitor-framebuffer\']"; fi\n',
+            )
+            environment = {
+                **os.environ,
+                "HOME": str(home),
+                "PATH": f"{fake_bin}:{os.environ['PATH']}",
+            }
+            for _ in range(2):
+                subprocess.run(
+                    ["bash", "scripts/install-user.sh"],
+                    cwd=REPOSITORY,
+                    env=environment,
+                    check=True,
+                    capture_output=True,
+                )
+                self.assertEqual(config.read_text(), "user-owned configuration\n")
+                self.assertEqual(state.read_text(), "user-owned saved layout\n")
+                library = home / ".local/lib/gnome-wayland-virtual-monitors-sunshine"
+                self.assertTrue(
+                    (library / "gnome_virtual_monitors/saved_layout.py").is_file()
+                )
+                self.assertTrue(
+                    (library / "examples/multiple-physical.example.toml").is_file()
+                )
+            subprocess.run(
+                ["bash", "scripts/uninstall-user.sh"],
+                cwd=REPOSITORY,
+                env=environment,
+                check=True,
+                capture_output=True,
+            )
+            self.assertFalse(library.exists())
+            self.assertEqual(config.read_text(), "user-owned configuration\n")
+            self.assertEqual(state.read_text(), "user-owned saved layout\n")

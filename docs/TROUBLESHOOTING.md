@@ -101,3 +101,79 @@ Use Moonlight's touchscreen-as-trackpad behavior. Absolute touch coordinates for
 ## Sunshine reports encoder errors during startup
 
 Encoder discovery intentionally tries multiple paths and can emit safe failures. For the validated NVIDIA path, the final discovery/session lines must show `Found H.264 encoder: h264_nvenc` and `Creating encoder [h264_nvenc]`.
+
+## Physical monitor disappears or portrait orientation changes
+
+Confirm `preserve_physical_monitors` is true (the default) and that the installed
+package is current. The legacy false setting deliberately manages only one
+physical primary. Preservation uses Mutter's current mode IDs and transforms;
+it does not infer portrait orientation from resolution. Inspect `GetCurrentState`
+before startup and the journal's layout summary. A missing preserved connector
+means the topology changed during startup: stop capture, reconnect it and retry.
+
+## Relative placement overlaps another physical display
+
+The daemon keeps the physical desktop intact and Mutter verifies the combined
+layout. It does not automatically move virtual monitors to the far right. Choose
+another `primary.connector` as the placement anchor or another direction/alignment.
+`relative_to` accepts configured roles, not arbitrary physical connector names.
+
+## Virtual connector changed or role is ambiguous
+
+A change from `Meta-0` to `Meta-1` is normal. The daemon excludes pre-existing
+virtual outputs and matches new roles by unique configured resolution. Give each
+virtual role a distinct width/height pair. Do not run competing output creators
+with identical resolutions during startup; ambiguous matches fail safely.
+
+## Wrong monitor position after restart
+
+Without saved restoration, virtual roles return to configured relative placement.
+While the daemon is running, arrange the virtual display in GNOME Settings, run
+`--save-layout` as documented in the README, and enable `restore_saved_layout`.
+The ready marker is written after restoration. A common translation at the desktop
+origin may change absolute coordinates when adding a left/above virtual display;
+physical spacing must remain unchanged.
+
+## Saved layout cannot match a recreated display
+
+A `Meta-0` to `Meta-1` change alone is harmless. Restore matches configured role
+names/resolutions to the newly created outputs. Missing roles or changed configured
+name/resolution/refresh require a new save. Two indistinguishable virtual outputs
+are rejected, never selected arbitrarily. Stop competing creators and use unique
+virtual width/height pairs. Keep the same config when saving and starting.
+
+## Additional physical connector missing or new physical display present
+
+A saved connector must exist with its saved mode and scale. Reconnect it or disable
+saved restoration, start with the new physical arrangement and save again. A new
+active physical output absent from the saved layout is also an error: an old save
+must not disable it. Physical identity is the connector, not the monitor serial;
+moving a cable to another connector requires a new save.
+
+## High-DPI 4K virtual display makes UI tiny
+
+Increase the virtual role's `scale`, for example from 1.0 to 1.5 or 2.0, while
+keeping its native capture dimensions. The daemon chooses Mutter's nearest
+supported value for config-driven placement, within 0.05. Restore instead requires
+the saved scale to be supported and does not silently round it. Arrange and save
+again after changing scale in GNOME Settings. If a saved layout is enabled, it
+takes precedence over the configured scale. Fractional scaling may soften XWayland
+apps and can encounter the documented Mutter 46 cursor bug; integer scaling avoids
+that particular fractional setting. Check Moonlight's requested native resolution.
+
+## Reset a saved layout safely / return to physical-only desktop
+
+Stop your isolated Sunshine instances first, then the normal capture instance,
+then `gnome-virtual-monitor.service`. Do not click GNOME's Stop Sharing button.
+To keep the save as a backup:
+
+```bash
+state="${XDG_STATE_HOME:-$HOME/.local/state}/gnome-wayland-virtual-monitors-sunshine/layout.json"
+if [ -f "$state" ]; then mv -- "$state" "$state.backup-$(date +%Y%m%d-%H%M%S)"; fi
+```
+
+Alternatively set `restore_saved_layout = false`. Restarting without the save uses
+normal relative placement; leaving the daemon stopped gives the physical-only
+session. Confirm the physical arrangement in GNOME Settings. Do not delete Sunshine
+credentials or Portal tokens as part of a display-layout reset. A malformed JSON
+file fails clearly; moving it aside is safer than hand-editing identifiers.

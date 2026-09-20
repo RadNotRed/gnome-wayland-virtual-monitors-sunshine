@@ -13,8 +13,27 @@ import gi
 gi.require_version("Gst", "1.0")
 from gi.repository import Gio, GLib, Gst
 
+from .display_state import (
+    apply_layout_payload,
+    compose_layout,
+    is_virtual,
+    physical_anchor,
+    layout_from_placements,
+    layout_summary,
+    resolve_virtual_roles,
+    snapshot_layout,
+    validate_preserved_modes,
+)
 from .layout import choose_mode, choose_scale, place_monitors
-from .model import DaemonConfig, ResolvedMonitor, VirtualMonitorConfig
+from .model import DaemonConfig, LogicalMonitor, ResolvedMonitor, VirtualMonitorConfig
+from .saved_layout import (
+    capture_saved_layout,
+    default_state_path,
+    read_saved_layout,
+    restore_layout,
+    validate_saved_setup,
+    write_saved_layout,
+)
 
 
 @dataclass
@@ -36,6 +55,9 @@ class VirtualMonitorDaemon:
         self.failed = False
         self.layout_attempts = 0
         self.preexisting_virtual_connectors: set[str] = set()
+        self.preserved_layout: tuple[LogicalMonitor, ...] = ()
+        self.anchor: tuple[LogicalMonitor, ResolvedMonitor] | None = None
+        self.saved_layout: dict | None = None
         runtime_dir = Path(
             os.environ.get("XDG_RUNTIME_DIR", f"/run/user/{os.getuid()}")
         )
@@ -75,9 +97,7 @@ class VirtualMonitorDaemon:
         for output in self.outputs:
             self._record_virtual(output)
 
-        self.session.call_sync(
-            "Start", None, Gio.DBusCallFlags.NONE, -1, None
-        )
+        self.session.call_sync("Start", None, Gio.DBusCallFlags.NONE, -1, None)
         requested = ", ".join(
             f"{output.config.name}={output.config.width}x{output.config.height}"
             f"@{output.config.refresh}"
@@ -175,10 +195,7 @@ class VirtualMonitorDaemon:
         if all(item.ready for item in self.outputs):
             GLib.timeout_add(500, self._apply_layout)
 
-    @staticmethod
-    def _is_virtual(monitor: tuple[object, ...]) -> bool:
-        spec = monitor[0]
-        return str(spec[0]).startswith("Meta-") or spec[2] == "Virtual remote monitor"
+    _is_virtual = staticmethod(is_virtual)
 
     @staticmethod
     def _new_display_config_proxy() -> Gio.DBusProxy:
@@ -193,9 +210,11 @@ class VirtualMonitorDaemon:
         )
 
     def _get_current_state(self) -> tuple[object, ...]:
-        return self._new_display_config_proxy().call_sync(
-            "GetCurrentState", None, Gio.DBusCallFlags.NONE, -1, None
-        ).unpack()
+        return (
+            self._new_display_config_proxy()
+            .call_sync("GetCurrentState", None, Gio.DBusCallFlags.NONE, -1, None)
+            .unpack()
+        )
 
     def _validate_layout_mode(self, properties: dict[str, object]) -> None:
         current_layout_mode = int(properties.get("layout-mode", 0))
@@ -209,12 +228,25 @@ class VirtualMonitorDaemon:
     def _preflight_display(self) -> set[str]:
         _serial, monitors, logical_monitors, properties = self._get_current_state()
         self._validate_layout_mode(properties)
-        self._resolve_primary_monitor(monitors, logical_monitors)
-        return {
-            monitor[0][0]
-            for monitor in monitors
-            if self._is_virtual(monitor)
-        }
+        if self.config.restore_saved_layout:
+            self.saved_layout = read_saved_layout(default_state_path())
+            if self.saved_layout is None:
+                print(
+                    "No saved layout; using configured relative placement", flush=True
+                )
+            else:
+                validate_saved_setup(
+                    self.saved_layout, self.config, monitors, logical_monitors
+                )
+        if self.config.preserve_physical_monitors:
+            self.preserved_layout = snapshot_layout(monitors, logical_monitors)
+            if self.saved_layout is None:
+                self.anchor = physical_anchor(
+                    self.config, self.preserved_layout, monitors
+                )
+        else:
+            self._resolve_primary_monitor(monitors, logical_monitors)
+        return {monitor[0][0] for monitor in monitors if self._is_virtual(monitor)}
 
     def _resolve_primary_monitor(
         self,
@@ -269,103 +301,75 @@ class VirtualMonitorDaemon:
             primary=True,
         )
 
-    def _resolve_monitors(
+    def save_layout(self) -> Path:
+        """Save the active layout without creating outputs or changing readiness."""
+        _serial, monitors, logical, properties = self._get_current_state()
+        self._validate_layout_mode(properties)
+        state = capture_saved_layout(self.config, monitors, logical)
+        path = default_state_path()
+        write_saved_layout(path, state)
+        return path
+
+    def _build_layout(
         self,
         monitors: list[tuple[object, ...]],
         logical_monitors: list[tuple[object, ...]],
-    ) -> list[ResolvedMonitor]:
-        virtual_candidates = [
-            monitor
-            for monitor in monitors
-            if self._is_virtual(monitor)
-            and monitor[0][0] not in self.preexisting_virtual_connectors
-        ]
-        resolved = [self._resolve_primary_monitor(monitors, logical_monitors)]
+    ) -> list[LogicalMonitor]:
+        virtuals = resolve_virtual_roles(
+            self.config,
+            monitors,
+            self.preexisting_virtual_connectors,
+            use_configured_scale=self.saved_layout is None,
+        )
+        if self.saved_layout is not None:
+            return restore_layout(
+                self.saved_layout, self.config, monitors, logical_monitors, virtuals
+            )
+        if not self.config.preserve_physical_monitors:
+            primary = self._resolve_primary_monitor(monitors, logical_monitors)
+            return layout_from_placements(place_monitors([primary, *virtuals]))
 
-        used_connectors: set[str] = set()
-        for profile in self.config.monitors:
-            candidate = next(
-                (
-                    monitor
-                    for monitor in virtual_candidates
-                    if monitor[0][0] not in used_connectors
-                    and any(
-                        mode[1] == profile.width and mode[2] == profile.height
-                        for mode in monitor[1]
-                    )
+        validate_preserved_modes(self.preserved_layout, monitors)
+        if self.anchor is None:
+            raise RuntimeError(
+                "Physical layout was not captured before output creation"
+            )
+        layout = compose_layout(self.preserved_layout, self.anchor, virtuals)
+        included = {output.connector for group in layout for output in group.monitors}
+        active = {spec[0] for group in logical_monitors for spec in group[5]}
+        if active - included:
+            raise RuntimeError(
+                "Active outputs appeared during startup; restart with a stable "
+                f"topology: {sorted(active - included)}"
+            )
+        return layout
+
+    def _verify_and_apply(self, serial: int, layout: list[LogicalMonitor]) -> None:
+        display_config = self._new_display_config_proxy()
+        payload = apply_layout_payload(layout)
+        properties = {"layout-mode": GLib.Variant("u", self.config.layout_mode)}
+        for method in (0, 1):
+            display_config.call_sync(
+                "ApplyMonitorsConfig",
+                GLib.Variant(
+                    "(uua(iiduba(ssa{sv}))a{sv})",
+                    (serial, method, payload, properties),
                 ),
+                Gio.DBusCallFlags.NONE,
+                -1,
                 None,
             )
-            if candidate is None:
-                raise RuntimeError(
-                    f"Virtual monitor {profile.name} ({profile.width}x{profile.height}) "
-                    "has not appeared yet"
-                )
-            used_connectors.add(candidate[0][0])
-            mode = choose_mode(
-                candidate[1], profile.width, profile.height, profile.refresh
-            )
-            scale = choose_scale(mode[5], profile.scale)
-            resolved.append(
-                ResolvedMonitor(
-                    name=profile.name,
-                    connector=candidate[0][0],
-                    mode_id=mode[0],
-                    width=mode[1],
-                    height=mode[2],
-                    refresh=mode[3],
-                    scale=scale,
-                    primary=False,
-                    relative_to=profile.relative_to,
-                    position=profile.position,
-                    alignment=profile.alignment,
-                )
-            )
-        return resolved
 
     def _apply_layout(self) -> int:
         self.layout_attempts += 1
         try:
-            display_config = self._new_display_config_proxy()
             serial, monitors, logical_monitors, properties = self._get_current_state()
             self._validate_layout_mode(properties)
-            resolved = self._resolve_monitors(monitors, logical_monitors)
-            placed = place_monitors(resolved)
-            layout = [
-                (
-                    item.x,
-                    item.y,
-                    item.monitor.scale,
-                    0,
-                    item.monitor.primary,
-                    [(item.monitor.connector, item.monitor.mode_id, {})],
-                )
-                for item in placed
-            ]
-            apply_properties = {
-                "layout-mode": GLib.Variant("u", self.config.layout_mode)
-            }
-            for method in (0, 1):
-                display_config.call_sync(
-                    "ApplyMonitorsConfig",
-                    GLib.Variant(
-                        "(uua(iiduba(ssa{sv}))a{sv})",
-                        (serial, method, layout, apply_properties),
-                    ),
-                    Gio.DBusCallFlags.NONE,
-                    -1,
-                    None,
-                )
+            layout = self._build_layout(monitors, logical_monitors)
+            self._verify_and_apply(serial, layout)
             self.ready_file.write_text("ready\n", encoding="utf-8")
             self.ready_file.chmod(0o600)
-            summary = "; ".join(
-                f"{item.monitor.name}/{item.monitor.connector} "
-                f"{item.monitor.width}x{item.monitor.height}@{item.monitor.refresh:.3f} "
-                f"scale={item.monitor.scale:.6g} pos={item.x},{item.y} "
-                f"logical={item.logical_width}x{item.logical_height}"
-                for item in placed
-            )
-            print(f"Display layout applied: {summary}", flush=True)
+            print(f"Display layout applied: {layout_summary(layout)}", flush=True)
             return GLib.SOURCE_REMOVE
         except (GLib.Error, OSError, RuntimeError, StopIteration) as error:
             if self.layout_attempts < self.config.layout_retries:
@@ -419,8 +423,6 @@ class VirtualMonitorDaemon:
                 output.pipeline.set_state(Gst.State.NULL)
         if self.session is not None:
             try:
-                self.session.call_sync(
-                    "Stop", None, Gio.DBusCallFlags.NONE, 3000, None
-                )
+                self.session.call_sync("Stop", None, Gio.DBusCallFlags.NONE, 3000, None)
             except GLib.Error:
                 pass

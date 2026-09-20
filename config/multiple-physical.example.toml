@@ -1,0 +1,30 @@
+# Arrange your physical displays in GNOME Settings first. Their current modes,
+# scales, rotations, positions and primary status are kept, regardless of count.
+[daemon]
+layout_mode = 1
+preserve_physical_monitors = true
+# Save with --save-layout after adjusting the virtual display in GNOME Settings.
+# When no save exists, normal relative placement is used.
+restore_saved_layout = true
+
+[primary]
+name = "desktop"
+# Omit connector to anchor to the current physical primary. To anchor to another
+# active physical output, set connector to its name from GetCurrentState.
+# These legacy mode fields are accepted but unused while preservation is true.
+width = 1920
+height = 1080
+refresh = 60
+scale = 1.0
+
+[[monitor]]
+name = "client"
+width = 3840
+height = 2160
+refresh = 60
+# Use 2.0 for integer scaling, or a supported fractional value such as 1.5.
+scale = 1.5
+relative_to = "desktop"
+position = "below"
+alignment = "start"
+# Choose an unoccupied edge; Mutter rejects overlap with other physical displays.

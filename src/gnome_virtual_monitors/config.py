@@ -8,7 +8,6 @@ from pathlib import Path
 
 from .model import DaemonConfig, PrimaryConfig, VirtualMonitorConfig
 
-
 POSITIONS = {"left", "right", "above", "below"}
 ALIGNMENTS = {"start", "center", "end"}
 
@@ -41,9 +40,7 @@ def load_config(path: str | Path) -> DaemonConfig:
     primary = PrimaryConfig(
         name=str(primary_data.get("name", "primary")),
         connector=(
-            str(primary_data["connector"])
-            if primary_data.get("connector")
-            else None
+            str(primary_data["connector"]) if primary_data.get("connector") else None
         ),
         width=_positive_integer(primary_data.get("width"), "primary.width"),
         height=_positive_integer(primary_data.get("height"), "primary.height"),
@@ -131,7 +128,21 @@ def load_config(path: str | Path) -> DaemonConfig:
             "supported because it cannot provide per-monitor fractional scaling"
         )
 
+    preserve = daemon_data.get("preserve_physical_monitors", True)
+    if not isinstance(preserve, bool):
+        raise ValueError("daemon.preserve_physical_monitors must be a boolean")
+
+    restore = daemon_data.get("restore_saved_layout", False)
+    if not isinstance(restore, bool):
+        raise ValueError("daemon.restore_saved_layout must be a boolean")
+    if restore and not preserve:
+        raise ValueError(
+            "restore_saved_layout requires preserve_physical_monitors = true"
+        )
+
     return DaemonConfig(
+        restore_saved_layout=restore,
+        preserve_physical_monitors=preserve,
         primary=primary,
         monitors=tuple(monitors),
         layout_mode=layout_mode,

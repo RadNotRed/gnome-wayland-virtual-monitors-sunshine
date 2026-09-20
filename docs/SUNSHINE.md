@@ -1,6 +1,6 @@
 # Sunshine and Moonlight setup
 
-This guide keeps the normal Sunshine instance for the Windows laptop and creates an isolated second instance for Android. The two processes must never share Portal tokens, ports, credentials, certificates, or pairing state.
+The commands below retain the original Windows-laptop and Android examples. The same isolated client-instance model applies to TVs, laptops, tablets and phones. The two processes must never share Portal tokens, ports, credentials, certificates, or pairing state.
 
 The supplied units assume a native Sunshine package at `/usr/bin/sunshine` and an NVIDIA GPU. Adapt `ExecStart` for another installation format and choose the appropriate encoder for Intel/AMD. Flatpak and AppImage layouts are not drop-in replacements for these examples.
 
@@ -158,3 +158,27 @@ Negotiation is not proof of smooth delivery. While content is moving, use Moonli
 - Never expose either Sunshine port family or Web UI directly to the public Internet.
 - A paired Moonlight client can control keyboard and pointer input in the GNOME session. Pair only trusted devices.
 - Two Sunshine instances share the same GNOME input seat. The setup isolates capture and state, not input ownership.
+
+## Other client instances and custom ports
+
+To create an instance for a TV or another client, copy the Android example under
+a new service name (for example `app-dev.lizardbyte.app.Sunshine.Client.service`)
+and change `XDG_CONFIG_HOME` to a unique root such as
+`%h/.config/sunshine-instances/client`. Place `sunshine.conf` and `apps.json` in its
+nested `sunshine/` directory, with private directory/file permissions (0700/0600).
+Change the app's display name to suit the client. Keep the readiness `ExecStartPre`,
+`BindsTo` and `After` dependencies in each service. Do not combine identities into
+one process, copy tokens/credentials/certificates between instances, or overwrite
+an already paired config. Create new credentials and pair each instance separately.
+
+For base port **P**, the documented port family is TCP **P−5, P, P+1, P+21** and UDP
+**P+9 through P+11**. The Web UI uses **P+1**; Moonlight's manual host entry uses
+**HOST_IP:P**. For the retained example P=48049, the Web UI is 48050. Select a base
+whose entire family does not overlap any other instance and permit only the needed
+trusted-network traffic. Keep unique XDG roots, pairing state, certificates,
+credentials, Portal tokens and ports even when both clients have the same type.
+
+After daemon readiness, select exactly the desired virtual monitor in the Portal
+dialog using its thumbnail, mode and position. `Meta-*` numbering is temporary.
+A saved daemon layout restores geometry, not Portal authorization; recreating an
+output may still require reauthorizing the affected Sunshine instance only.

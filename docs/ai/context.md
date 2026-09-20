@@ -7,14 +7,15 @@ no automated permissions.
 
 ## One paragraph
 
-This project is a GNOME/Wayland user-space daemon that turns a Windows laptop
-and an Android phone into **real extended monitors** for a single Ubuntu
-desktop. It asks Mutter for `RecordVirtual` virtual outputs, keeps their
-PipeWire nodes alive, and applies an extended layout. Each virtual output is
-captured by its own isolated Sunshine instance through the XDG Desktop Portal
-and viewed in Moonlight on the client. The result is one desktop spread
-across three surfaces with independent, mixed refresh rates (120 Hz where it
-matters, 60 Hz on the laptop).
+This project is a GNOME/Wayland user-session daemon that adds **real extended
+monitors** to an existing physical desktop. It asks Mutter for `RecordVirtual`
+outputs, keeps their PipeWire nodes alive, and preserves active physical logical
+groups while adding configured virtual roles. Optional saved layouts retain manual
+position, scale, orientation and primary changes across recreation. Virtual roles
+are identified by configuration, not temporary connector names. Each output can
+be captured by an isolated Sunshine instance through the XDG Desktop Portal and
+viewed in Moonlight on a laptop, TV, tablet or phone. The original laptop/phone
+configuration remains a working example with independent mixed refresh rates.
 
 ## What it is not
 
@@ -59,3 +60,20 @@ lean on [`../ARCHITECTURE.md`](../ARCHITECTURE.md) for internals, and send
 pairing/latency questions to [`../SUNSHINE.md`](../SUNSHINE.md). When unsure
 whether behavior is a bug or a known limitation, check
 [`../TROUBLESHOOTING.md`](../TROUBLESHOOTING.md) first.
+
+## Multiple physical monitors
+
+The daemon now preserves active physical logical groups by default, including
+exact modes, transforms, scales and primary status. Do not assume a single
+physical display or copy machine-specific far-right placement. Relative placement
+still uses configured roles. The legacy opt-out is explicit. Unit tests cover
+multi-physical layouts; do not equate mocked tests with live GNOME validation.
+
+Saved layouts use manual `--save-layout` plus optional `restore_saved_layout` at
+startup. Persistent virtual identities are configured roles, not `Meta-*` names.
+Physical connectors and exact modes are retained; ambiguous, missing or omitted
+active outputs fail safely. No saved file falls back to configured placement.
+Do not conflate layout persistence with Sunshine Portal token persistence. A separate
+GNOME 50.5 lifecycle test passed for three physical + one virtual output, including
+save/recreate/restore/stop. This is one workstation, not universal GNOME 50 support;
+Sunshine streaming was not exercised in that test. See docs/TESTING.md for limits.

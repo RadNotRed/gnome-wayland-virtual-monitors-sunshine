@@ -6,7 +6,6 @@ from pathlib import Path
 
 from gnome_virtual_monitors.config import load_config
 
-
 VALID_CONFIG = b"""
 [daemon]
 layout_mode = 1
@@ -49,13 +48,19 @@ class ConfigTests(unittest.TestCase):
             (1920, 1080),
         )
         self.assertEqual(config.primary.refresh, 120)
-        self.assertEqual([monitor.name for monitor in config.monitors], ["windows", "android"])
+        self.assertEqual(
+            [monitor.name for monitor in config.monitors], ["windows", "android"]
+        )
         self.assertEqual(config.monitors[1].refresh, 120)
         self.assertEqual(config.monitors[1].scale, 1.75)
 
     def test_rejects_unknown_relative_monitor(self):
         with self.assertRaisesRegex(ValueError, "unknown monitor"):
-            self.load(VALID_CONFIG.replace(b'relative_to = "aoc"', b'relative_to = "missing"', 1))
+            self.load(
+                VALID_CONFIG.replace(
+                    b'relative_to = "aoc"', b'relative_to = "missing"', 1
+                )
+            )
 
     def test_rejects_duplicate_names(self):
         with self.assertRaisesRegex(ValueError, "duplicate monitor"):
@@ -97,7 +102,7 @@ class ConfigTests(unittest.TestCase):
                 b'primary = "bad"\n'
                 + VALID_CONFIG.replace(
                     b'[primary]\nname = "aoc"\nwidth = 1920\nheight = 1080\nrefresh = 120',
-                    b'',
+                    b"",
                 ),
                 r"\[primary\] must be a table",
             ),
@@ -134,3 +139,46 @@ class ConfigTests(unittest.TestCase):
         )
         with self.assertRaisesRegex(ValueError, "placement cycle"):
             self.load(cyclic)
+
+    def test_preservation_defaults_to_true_and_accepts_false(self):
+        self.assertTrue(self.load().preserve_physical_monitors)
+        self.assertFalse(
+            self.load(
+                VALID_CONFIG.replace(
+                    b"layout_mode = 1",
+                    b"layout_mode = 1\npreserve_physical_monitors = false",
+                )
+            ).preserve_physical_monitors
+        )
+
+    def test_preservation_requires_a_boolean(self):
+        for value in (b'"true"', b"1"):
+            with self.assertRaisesRegex(ValueError, "must be a boolean"):
+                self.load(
+                    VALID_CONFIG.replace(
+                        b"layout_mode = 1",
+                        b"layout_mode = 1\npreserve_physical_monitors = " + value,
+                    )
+                )
+
+    def test_restore_defaults_to_false_and_accepts_true(self):
+        self.assertFalse(self.load().restore_saved_layout)
+        self.assertTrue(
+            self.load(
+                VALID_CONFIG.replace(
+                    b"layout_mode = 1", b"layout_mode = 1\nrestore_saved_layout = true"
+                )
+            ).restore_saved_layout
+        )
+
+    def test_restore_requires_preservation_and_boolean(self):
+        for settings in (
+            b'restore_saved_layout = "true"',
+            b"restore_saved_layout = true\npreserve_physical_monitors = false",
+        ):
+            with self.assertRaisesRegex(ValueError, "restore_saved_layout"):
+                self.load(
+                    VALID_CONFIG.replace(
+                        b"layout_mode = 1", b"layout_mode = 1\n" + settings
+                    )
+                )

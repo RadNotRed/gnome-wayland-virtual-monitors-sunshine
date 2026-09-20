@@ -20,10 +20,16 @@ def parse_args() -> argparse.Namespace:
         default="~/.config/gnome-virtual-monitors/config.toml",
         help="TOML configuration path",
     )
-    parser.add_argument(
+    action = parser.add_mutually_exclusive_group()
+    action.add_argument(
         "--check-config",
         action="store_true",
         help="validate the configuration without creating monitors",
+    )
+    action.add_argument(
+        "--save-layout",
+        action="store_true",
+        help="save the active layout for optional restoration on future daemon starts",
     )
     return parser.parse_args()
 
@@ -39,11 +45,24 @@ def main() -> int:
     if args.check_config:
         print(
             f"Configuration valid: {len(config.monitors)} virtual monitor(s), "
-            f"primary refresh {config.primary.refresh} Hz"
+            + (
+                "preserving active physical displays"
+                if config.preserve_physical_monitors
+                else f"primary refresh {config.primary.refresh} Hz"
+            )
         )
         return 0
 
     daemon = VirtualMonitorDaemon(config)
+    if args.save_layout:
+        try:
+            path = daemon.save_layout()
+        except (GLib.Error, OSError, RuntimeError, ValueError) as error:
+            print(f"Could not save layout: {error}", file=sys.stderr)
+            return 1
+        print(f"Layout saved to {path}")
+        return 0
+
     try:
         daemon.start()
     except GLib.Error as error:
