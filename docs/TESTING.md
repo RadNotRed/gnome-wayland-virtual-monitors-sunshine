@@ -17,7 +17,7 @@ git diff --check
 
 ## Host acceptance
 
-- Physical primary remains at its requested refresh.
+- Every active physical monitor retains its current mode, refresh, transform, scale and primary status (legacy mode uses configured refresh).
 - Laptop virtual output appears on the physical left.
 - Phone virtual output appears centered below the primary.
 - Phone scale is the closest supported value to the requested scale.
@@ -38,3 +38,20 @@ git diff --check
 - Reconnect, Sunshine restart, login restart and suspend/resume are tested separately.
 - Android 120 FPS is accepted only if it improves latency without decode drops, jitter or thermal instability.
 - Cursor movement is tested across the entire 175%-scaled phone output; any ghosting is recorded as the known Mutter issue.
+
+## Multi-physical acceptance matrix
+
+Test 1 physical + 1 virtual, 2 physical + 1 virtual, and 3 physical + 1 virtual.
+Include landscape + portrait, mixed refresh, mixed scale, and mirrored physical
+groups. Compare `GetCurrentState` before and after: every original connector and
+current mode ID must remain present, with the same transform, scale and primary.
+Positions must match except a common origin translation for left/above placement.
+Test two virtual roles and chained relative placement as well as the original
+example. A same-resolution physical display or pre-existing virtual output must
+not become a newly created role. Test ambiguous new virtual outputs and unplugged
+physical connectors: verification must fail without publishing readiness.
+
+Back up configuration and installed source before replacing a working setup.
+Stop Sunshine instances before testing daemon stop/restart. Confirm that stopping
+the daemon removes its virtual outputs and leaves a usable physical desktop.
+Never use GNOME's global Stop Sharing control for this test.

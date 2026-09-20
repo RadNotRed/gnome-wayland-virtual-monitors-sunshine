@@ -62,7 +62,12 @@ def _alignment_offset(container: int, child: int, alignment: str) -> int:
     raise RuntimeError(f"Unknown alignment: {alignment}")
 
 
-def place_monitors(monitors: Sequence[ResolvedMonitor]) -> list[PlacedMonitor]:
+def place_monitors(
+    monitors: Sequence[ResolvedMonitor],
+    *,
+    origin: tuple[int, int] = (0, 0),
+    normalize: bool = True,
+) -> list[PlacedMonitor]:
     primary_monitors = [monitor for monitor in monitors if monitor.primary]
     if len(primary_monitors) != 1:
         raise RuntimeError("Exactly one primary monitor is required")
@@ -72,7 +77,7 @@ def place_monitors(monitors: Sequence[ResolvedMonitor]) -> list[PlacedMonitor]:
         primary.width, primary.height, primary.scale
     )
     placed: dict[str, PlacedMonitor] = {
-        primary.name: PlacedMonitor(primary, 0, 0, primary_width, primary_height)
+        primary.name: PlacedMonitor(primary, *origin, primary_width, primary_height)
     }
 
     pending = {monitor.name: monitor for monitor in monitors if not monitor.primary}
@@ -114,6 +119,9 @@ def place_monitors(monitors: Sequence[ResolvedMonitor]) -> list[PlacedMonitor]:
         if not progressed:
             unresolved = ", ".join(sorted(pending))
             raise RuntimeError(f"Cyclic or unresolved monitor placement: {unresolved}")
+
+    if not normalize:
+        return [placed[monitor.name] for monitor in monitors]
 
     min_x = min(item.x for item in placed.values())
     min_y = min(item.y for item in placed.values())

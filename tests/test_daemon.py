@@ -59,6 +59,7 @@ class DaemonPreflightTests(unittest.TestCase):
             layout_mode=1,
             layout_retries=20,
             startup_timeout=15,
+            preserve_physical_monitors=False,
         )
         with tempfile.TemporaryDirectory() as runtime_directory:
             with mock.patch.dict(
@@ -78,3 +79,50 @@ class DaemonPreflightTests(unittest.TestCase):
                         "No refresh near 120",
                     ):
                         daemon.start()
+
+
+class DaemonLayoutTests(unittest.TestCase):
+    def make_daemon(self, directory, preserve=True):
+        from test_display_state import configuration, logical, monitor
+        from pathlib import Path
+        daemon = VirtualMonitorDaemon(configuration(preserve_physical_monitors=preserve))
+        daemon.ready_file = Path(directory) / "ready"
+        physical = monitor("physical-A", refresh=60)
+        second = monitor("physical-B", refresh=240.01971435546875)
+        virtual = monitor("Meta-8", 1280, 720, 60, True)
+        before = (1, [physical, second], [logical(physical), logical(second, x=1920, transform=1, primary=False)], {"layout-mode": 1})
+        after = (2, [physical, second, virtual], before[2] + [logical(virtual, primary=False)], before[3])
+        daemon._get_current_state = mock.Mock(return_value=before)
+        daemon.preexisting_virtual_connectors = daemon._preflight_display()
+        daemon._get_current_state.return_value = after
+        return daemon
+
+    def test_preserved_and_legacy_apply_payloads_and_readiness(self):
+        for preserve in (True, False):
+            with self.subTest(preserve=preserve), tempfile.TemporaryDirectory() as directory:
+                daemon = self.make_daemon(directory, preserve)
+                payloads = []
+                def apply(_method, variant, *_args):
+                    self.assertFalse(daemon.ready_file.exists())
+                    payloads.append(variant.unpack())
+                proxy = mock.Mock()
+                proxy.call_sync.side_effect = apply
+                daemon._new_display_config_proxy = mock.Mock(return_value=proxy)
+                daemon._apply_layout()
+                self.assertFalse(daemon.failed)
+                self.assertTrue(daemon.ready_file.exists())
+                self.assertEqual([p[1] for p in payloads], [0, 1])
+                self.assertEqual(len(payloads[-1][2]), 3 if preserve else 2)
+                if preserve:
+                    self.assertEqual(payloads[-1][2][1][:5], (1920, 0, 1.0, 1, False))
+
+    def test_failed_verification_does_not_apply_or_mark_ready(self):
+        with tempfile.TemporaryDirectory() as directory:
+            daemon = self.make_daemon(directory)
+            proxy = mock.Mock()
+            proxy.call_sync.side_effect = RuntimeError("overlapping layout")
+            daemon._new_display_config_proxy = mock.Mock(return_value=proxy)
+            daemon._apply_layout()
+            self.assertTrue(daemon.failed)
+            self.assertFalse(daemon.ready_file.exists())
+            self.assertEqual(proxy.call_sync.call_count, 1)

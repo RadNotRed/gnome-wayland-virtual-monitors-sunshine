@@ -25,3 +25,11 @@ assistant. These are the questions this project answers well.
 > I want to `<change>`. Given the non-goals in PROJECT_SCOPE.md and the sharp
 > edges, tell me what could break — Portal tokens, cursor scaling, or the
 > "Stop Sharing" pitfall — before I touch anything.
+
+## Multiple physical monitors
+
+The daemon now preserves active physical logical groups by default, including
+exact modes, transforms, scales and primary status. Do not assume a single
+physical display or copy machine-specific far-right placement. Relative placement
+still uses configured roles. The legacy opt-out is explicit. Unit tests cover
+multi-physical layouts; do not equate mocked tests with live GNOME validation.

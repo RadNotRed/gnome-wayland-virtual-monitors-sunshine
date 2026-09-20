@@ -45,6 +45,30 @@ The validated desktop looks like this:
 
 Under the hood, a user daemon asks Mutter for `RecordVirtual` outputs, keeps their PipeWire nodes alive, and applies the extended layout. Sunshine captures each output through its own XDG Portal session.
 
+## Existing physical displays
+
+Virtual outputs extend the existing desktop. By default, all active physical
+logical monitors retain their exact modes (including refresh), scale, rotation,
+primary status and groupings. Disabled physical outputs stay disabled. The
+original GNOME 46.2 setup remains the upstream validation baseline; broader
+multi-monitor and newer GNOME testing is welcome.
+
+`[daemon] preserve_physical_monitors = true` is the default. Existing config files
+still parse. In this mode `[primary]` names the placement anchor: `connector`
+selects an active physical monitor, or omission selects GNOME's physical primary.
+Its width/height/refresh/scale fields remain accepted for compatibility but do not
+change the physical display. Configure physical displays in GNOME Settings.
+Set `preserve_physical_monitors = false` only to request the original behavior,
+which applies the configured primary mode and omits other physical outputs.
+
+Virtual `relative_to`, `position` and `alignment` still use configured role names.
+Direct connector references in `relative_to` are not supported; select another
+physical anchor with `primary.connector`. Placement that overlaps a physical
+monitor is rejected by Mutter's verification, not silently moved to another edge.
+When adding an output left of or above the current origin, all coordinates shift
+together to keep Mutter's origin non-negative. Physical spacing is unchanged;
+otherwise physical X/Y coordinates are preserved exactly.
+
 ## Quick start
 
 ### 1. Install the host dependencies
@@ -87,7 +111,7 @@ Before enabling the service:
 
 - set the physical connector, width, height, and refresh for your primary display;
 - give every virtual monitor a unique width/height pair; and
-- remember that v0.1 manages one physical primary plus the configured virtual outputs.
+- keep the existing physical arrangement in GNOME Settings; physical preservation is enabled by default.
 
 The installer stays inside your home directory. It does not start a root daemon, replace a kernel module, overwrite an existing monitor config, or erase unrelated Mutter features during rollback.
 
@@ -248,7 +272,7 @@ Antes de habilitar o serviço:
 
 - defina o conector físico, largura, altura e refresh da sua tela principal;
 - dê a cada monitor virtual um par largura/altura único; e
-- lembre-se de que a v0.1 gerencia uma primária física mais as saídas virtuais configuradas.
+- mantenha a disposição física no painel de configurações do GNOME; ela é preservada por padrão.
 
 O instalador fica dentro do seu diretório home. Ele não inicia um daemon root, não substitui um módulo de kernel, não sobrescreve uma configuração de monitor existente nem apaga recursos do Mutter não relacionados durante o rollback.
 

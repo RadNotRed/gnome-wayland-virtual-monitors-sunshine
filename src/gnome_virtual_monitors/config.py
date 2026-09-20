@@ -131,7 +131,12 @@ def load_config(path: str | Path) -> DaemonConfig:
             "supported because it cannot provide per-monitor fractional scaling"
         )
 
+    preserve = daemon_data.get("preserve_physical_monitors", True)
+    if not isinstance(preserve, bool):
+        raise ValueError("daemon.preserve_physical_monitors must be a boolean")
+
     return DaemonConfig(
+        preserve_physical_monitors=preserve,
         primary=primary,
         monitors=tuple(monitors),
         layout_mode=layout_mode,

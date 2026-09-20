@@ -134,3 +134,16 @@ class ConfigTests(unittest.TestCase):
         )
         with self.assertRaisesRegex(ValueError, "placement cycle"):
             self.load(cyclic)
+
+    def test_preservation_defaults_to_true_and_accepts_false(self):
+        self.assertTrue(self.load().preserve_physical_monitors)
+        self.assertFalse(self.load(VALID_CONFIG.replace(
+            b"layout_mode = 1", b"layout_mode = 1\npreserve_physical_monitors = false"
+        )).preserve_physical_monitors)
+
+    def test_preservation_requires_a_boolean(self):
+        for value in (b'"true"', b"1"):
+            with self.assertRaisesRegex(ValueError, "must be a boolean"):
+                self.load(VALID_CONFIG.replace(
+                    b"layout_mode = 1", b"layout_mode = 1\npreserve_physical_monitors = " + value
+                ))

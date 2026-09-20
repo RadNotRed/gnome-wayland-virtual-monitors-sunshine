@@ -59,3 +59,11 @@ lean on [`../ARCHITECTURE.md`](../ARCHITECTURE.md) for internals, and send
 pairing/latency questions to [`../SUNSHINE.md`](../SUNSHINE.md). When unsure
 whether behavior is a bug or a known limitation, check
 [`../TROUBLESHOOTING.md`](../TROUBLESHOOTING.md) first.
+
+## Multiple physical monitors
+
+The daemon now preserves active physical logical groups by default, including
+exact modes, transforms, scales and primary status. Do not assume a single
+physical display or copy machine-specific far-right placement. Relative placement
+still uses configured roles. The legacy opt-out is explicit. Unit tests cover
+multi-physical layouts; do not equate mocked tests with live GNOME validation.

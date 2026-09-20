@@ -101,3 +101,26 @@ Use Moonlight's touchscreen-as-trackpad behavior. Absolute touch coordinates for
 ## Sunshine reports encoder errors during startup
 
 Encoder discovery intentionally tries multiple paths and can emit safe failures. For the validated NVIDIA path, the final discovery/session lines must show `Found H.264 encoder: h264_nvenc` and `Creating encoder [h264_nvenc]`.
+
+## Physical monitor disappears or portrait orientation changes
+
+Confirm `preserve_physical_monitors` is true (the default) and that the installed
+package is current. The legacy false setting deliberately manages only one
+physical primary. Preservation uses Mutter's current mode IDs and transforms;
+it does not infer portrait orientation from resolution. Inspect `GetCurrentState`
+before startup and the journal's layout summary. A missing preserved connector
+means the topology changed during startup: stop capture, reconnect it and retry.
+
+## Relative placement overlaps another physical display
+
+The daemon keeps the physical desktop intact and Mutter verifies the combined
+layout. It does not automatically move virtual monitors to the far right. Choose
+another `primary.connector` as the placement anchor or another direction/alignment.
+`relative_to` accepts configured roles, not arbitrary physical connector names.
+
+## Virtual connector changed or role is ambiguous
+
+A change from `Meta-0` to `Meta-1` is normal. The daemon excludes pre-existing
+virtual outputs and matches new roles by unique configured resolution. Give each
+virtual role a distinct width/height pair. Do not run competing output creators
+with identical resolutions during startup; ambiguous matches fail safely.

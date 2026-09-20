@@ -34,6 +34,7 @@ class DaemonConfig:
     layout_mode: int
     layout_retries: int
     startup_timeout: int
+    preserve_physical_monitors: bool = True
 
 
 @dataclass(frozen=True)
@@ -58,3 +59,24 @@ class PlacedMonitor:
     y: int
     logical_width: int
     logical_height: int
+
+
+@dataclass(frozen=True)
+class MonitorMode:
+    """An exact Mutter mode, without hardware serial numbers."""
+
+    connector: str
+    mode_id: str
+    width: int
+    height: int
+    refresh: float
+
+
+@dataclass(frozen=True)
+class LogicalMonitor:
+    x: int
+    y: int
+    scale: float
+    transform: int
+    primary: bool
+    monitors: tuple[MonitorMode, ...]

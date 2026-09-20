@@ -1,4 +1,6 @@
 [daemon]
+# Keep current physical modes/layout; false selects the original single-primary behavior.
+preserve_physical_monitors = true
 layout_mode = 1
 layout_retries = 20
 startup_timeout = 15
@@ -8,6 +10,7 @@ name = "primary"
 # Replace this with your physical connector from the daemon log, or remove the
 # line to use GNOME's current primary monitor.
 connector = "HDMI-1"
+# Physical mode fields are used only when preservation is false.
 width = 1920
 height = 1080
 refresh = 120

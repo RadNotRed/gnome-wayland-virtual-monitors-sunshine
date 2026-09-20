@@ -4,6 +4,15 @@
 
 Provide a reproducible, user-session-only way to create extended virtual monitors on GNOME Wayland and stream a different monitor to each Moonlight client through Sunshine with low interactive latency.
 
+## Supported physical layout behavior
+
+The default preserves all active physical logical groups before adding configured
+virtual roles: connector, current mode ID, exact refresh, scale, transform,
+position and primary status. A necessary common origin translation is the only
+coordinate adjustment. Existing virtual sessions are also retained, but never
+used as newly created roles. Inactive physical outputs are not enabled.
+Legacy single-primary behavior is available with `preserve_physical_monitors = false`.
+
 ## Validated layout
 
 - Keep the physical 1920x1080 primary display at 120 Hz.
@@ -26,7 +35,7 @@ Provide a reproducible, user-session-only way to create extended virtual monitor
 
 - Install without a root daemon or kernel module.
 - Start in the graphical user session and wait for the monitor layout before Sunshine capture.
-- Reject ambiguous monitor roles, an unavailable physical mode, cyclic placement, and invalid numeric configuration before creating outputs.
+- Reject ambiguous monitor roles, an unavailable preserved mode (or configured physical mode in legacy mode), cyclic placement, and invalid numeric configuration before creating outputs.
 - Preserve unrelated Mutter experimental features during uninstall.
 - Document Portal reauthorization, GNOME's Stop Sharing failure mode, the Mutter fractional-scale cursor bug, rollback, testing, and sensitive files.
 - Credit Lina as creator and maintainer.
@@ -44,5 +53,5 @@ Provide a reproducible, user-session-only way to create extended virtual monitor
 - A compositor-independent Wayland protocol.
 - Guaranteed zero latency or guaranteed 120 FPS on every network/client.
 - Separate keyboard and pointer seats per client.
-- Preserving additional physical monitors in v0.1; the validated scope manages one physical primary plus virtual outputs.
+- Automatic physical hotplug policy or compositor-independent layout management.
 - Treating a plain USB-C cable as a network link without tethering or a network adapter.

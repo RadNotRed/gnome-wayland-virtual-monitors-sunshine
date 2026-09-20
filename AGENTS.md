@@ -21,3 +21,11 @@ When helping a reader:
 - respect the non-goals in [`docs/PROJECT_SCOPE.md`](docs/PROJECT_SCOPE.md);
 - surface the sharp edges (cursor at ~175% scale, Portal token loss, the
   GNOME "Stop Sharing" pitfall) before recommending changes.
+
+## Multiple physical monitors
+
+The daemon now preserves active physical logical groups by default, including
+exact modes, transforms, scales and primary status. Do not assume a single
+physical display or copy machine-specific far-right placement. Relative placement
+still uses configured roles. The legacy opt-out is explicit. Unit tests cover
+multi-physical layouts; do not equate mocked tests with live GNOME validation.

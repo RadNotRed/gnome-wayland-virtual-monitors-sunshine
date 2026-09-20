@@ -13,8 +13,12 @@ import gi
 gi.require_version("Gst", "1.0")
 from gi.repository import Gio, GLib, Gst
 
+from .display_state import (
+    apply_layout_payload, compose_layout, is_virtual, physical_anchor,
+    resolve_virtual_roles, snapshot_layout, validate_preserved_modes,
+)
 from .layout import choose_mode, choose_scale, place_monitors
-from .model import DaemonConfig, ResolvedMonitor, VirtualMonitorConfig
+from .model import DaemonConfig, LogicalMonitor, ResolvedMonitor, VirtualMonitorConfig
 
 
 @dataclass
@@ -36,6 +40,8 @@ class VirtualMonitorDaemon:
         self.failed = False
         self.layout_attempts = 0
         self.preexisting_virtual_connectors: set[str] = set()
+        self.preserved_layout: tuple[LogicalMonitor, ...] = ()
+        self.anchor: tuple[LogicalMonitor, ResolvedMonitor] | None = None
         runtime_dir = Path(
             os.environ.get("XDG_RUNTIME_DIR", f"/run/user/{os.getuid()}")
         )
@@ -175,10 +181,7 @@ class VirtualMonitorDaemon:
         if all(item.ready for item in self.outputs):
             GLib.timeout_add(500, self._apply_layout)
 
-    @staticmethod
-    def _is_virtual(monitor: tuple[object, ...]) -> bool:
-        spec = monitor[0]
-        return str(spec[0]).startswith("Meta-") or spec[2] == "Virtual remote monitor"
+    _is_virtual = staticmethod(is_virtual)
 
     @staticmethod
     def _new_display_config_proxy() -> Gio.DBusProxy:
@@ -209,7 +212,11 @@ class VirtualMonitorDaemon:
     def _preflight_display(self) -> set[str]:
         _serial, monitors, logical_monitors, properties = self._get_current_state()
         self._validate_layout_mode(properties)
-        self._resolve_primary_monitor(monitors, logical_monitors)
+        if self.config.preserve_physical_monitors:
+            self.preserved_layout = snapshot_layout(monitors, logical_monitors)
+            self.anchor = physical_anchor(self.config, self.preserved_layout, monitors)
+        else:
+            self._resolve_primary_monitor(monitors, logical_monitors)
         return {
             monitor[0][0]
             for monitor in monitors
@@ -274,54 +281,10 @@ class VirtualMonitorDaemon:
         monitors: list[tuple[object, ...]],
         logical_monitors: list[tuple[object, ...]],
     ) -> list[ResolvedMonitor]:
-        virtual_candidates = [
-            monitor
-            for monitor in monitors
-            if self._is_virtual(monitor)
-            and monitor[0][0] not in self.preexisting_virtual_connectors
+        return [
+            self._resolve_primary_monitor(monitors, logical_monitors),
+            *resolve_virtual_roles(self.config, monitors, self.preexisting_virtual_connectors),
         ]
-        resolved = [self._resolve_primary_monitor(monitors, logical_monitors)]
-
-        used_connectors: set[str] = set()
-        for profile in self.config.monitors:
-            candidate = next(
-                (
-                    monitor
-                    for monitor in virtual_candidates
-                    if monitor[0][0] not in used_connectors
-                    and any(
-                        mode[1] == profile.width and mode[2] == profile.height
-                        for mode in monitor[1]
-                    )
-                ),
-                None,
-            )
-            if candidate is None:
-                raise RuntimeError(
-                    f"Virtual monitor {profile.name} ({profile.width}x{profile.height}) "
-                    "has not appeared yet"
-                )
-            used_connectors.add(candidate[0][0])
-            mode = choose_mode(
-                candidate[1], profile.width, profile.height, profile.refresh
-            )
-            scale = choose_scale(mode[5], profile.scale)
-            resolved.append(
-                ResolvedMonitor(
-                    name=profile.name,
-                    connector=candidate[0][0],
-                    mode_id=mode[0],
-                    width=mode[1],
-                    height=mode[2],
-                    refresh=mode[3],
-                    scale=scale,
-                    primary=False,
-                    relative_to=profile.relative_to,
-                    position=profile.position,
-                    alignment=profile.alignment,
-                )
-            )
-        return resolved
 
     def _apply_layout(self) -> int:
         self.layout_attempts += 1
@@ -329,19 +292,31 @@ class VirtualMonitorDaemon:
             display_config = self._new_display_config_proxy()
             serial, monitors, logical_monitors, properties = self._get_current_state()
             self._validate_layout_mode(properties)
-            resolved = self._resolve_monitors(monitors, logical_monitors)
-            placed = place_monitors(resolved)
-            layout = [
-                (
-                    item.x,
-                    item.y,
-                    item.monitor.scale,
-                    0,
-                    item.monitor.primary,
-                    [(item.monitor.connector, item.monitor.mode_id, {})],
+            if self.config.preserve_physical_monitors:
+                validate_preserved_modes(self.preserved_layout, monitors)
+                if self.anchor is None:
+                    raise RuntimeError("Physical layout was not captured before output creation")
+                virtuals = resolve_virtual_roles(
+                    self.config, monitors, self.preexisting_virtual_connectors
                 )
-                for item in placed
-            ]
+                layout = apply_layout_payload(compose_layout(
+                    self.preserved_layout, self.anchor, virtuals
+                ))
+            else:
+                resolved = self._resolve_monitors(monitors, logical_monitors)
+                layout = [
+                    (item.x, item.y, item.monitor.scale, 0, item.monitor.primary,
+                     [(item.monitor.connector, item.monitor.mode_id, {})])
+                    for item in place_monitors(resolved)
+                ]
+            if self.config.preserve_physical_monitors:
+                included = {output[0] for group in layout for output in group[5]}
+                active = {spec[0] for group in logical_monitors for spec in group[5]}
+                if active - included:
+                    raise RuntimeError(
+                        "Active outputs appeared during startup; restart with a stable "
+                        f"topology: {sorted(active - included)}"
+                    )
             apply_properties = {
                 "layout-mode": GLib.Variant("u", self.config.layout_mode)
             }
@@ -359,11 +334,9 @@ class VirtualMonitorDaemon:
             self.ready_file.write_text("ready\n", encoding="utf-8")
             self.ready_file.chmod(0o600)
             summary = "; ".join(
-                f"{item.monitor.name}/{item.monitor.connector} "
-                f"{item.monitor.width}x{item.monitor.height}@{item.monitor.refresh:.3f} "
-                f"scale={item.monitor.scale:.6g} pos={item.x},{item.y} "
-                f"logical={item.logical_width}x{item.logical_height}"
-                for item in placed
+                f"{','.join(output[0] for output in outputs)} "
+                f"scale={scale:.6g} transform={transform} primary={primary} pos={x},{y}"
+                for x, y, scale, transform, primary, outputs in layout
             )
             print(f"Display layout applied: {summary}", flush=True)
             return GLib.SOURCE_REMOVE
